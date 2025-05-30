@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista de Agendamentos</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-image: url('/Imagens/rosinha.png');
+      background-size: cover;
+      background-position: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    main {
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #ffffffee;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #d15b91;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+      color: #d15b91;
+      border-bottom: 1px solid #f8cce7;
+      padding-bottom: 0.3rem;
+      text-transform: capitalize;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #f8cce7;
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .botoes {
+      margin-top: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .botao {
+      background-color: #e26ca4;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.3s;
+    }
+
+    .botao:hover {
+      background-color: #d15b91;
+    }
+
+    .voltar {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      text-decoration: none;
+      color: white;
+      background-color: #e26ca4;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    .voltar:hover {
+      background-color: #d15b91;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Agendamentos</h1>
+    <ul id="lista-agendamentos"></ul>
+    <a href="index.html" class="voltar">Voltar ao Agendamento</a>
+    <a href="AgendamentosAtendidos.html" class="voltar" style="margin-top: 0.5rem; background-color: #d15b91;">
+      Agendamentos Atendidos
+    </a>
+  </main>
+
+  <script>
+    const agendamentos = JSON.parse(localStorage.getItem("agendamentos") || "[]");
+
+    // Agrupa agendamentos por data
+    const agendamentosPorData = {};
+    agendamentos.forEach(ag => {
+      if (!agendamentosPorData[ag.data]) {
+        agendamentosPorData[ag.data] = [];
+      }
+      agendamentosPorData[ag.data].push(ag);
+    });
+
+    const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
+    const lista = document.getElementById("lista-agendamentos");
+
+    if (agendamentos.length === 0) {
+      lista.innerHTML = "<p style='text-align:center;'>Nenhum agendamento encontrado.</p>";
+    } else {
+      datasOrdenadas.forEach(data => {
+        const tituloData = document.createElement("h2");
+        const [ano, mes, dia] = data.split("-");
+        const dataFormatada = new Date(ano, mes - 1, dia);
+
+        tituloData.textContent = dataFormatada.toLocaleDateString("pt-BR", {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        lista.appendChild(tituloData);
+
+        const agendamentosOrdenados = agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
+
+        agendamentosOrdenados.forEach(item => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>Nome:</strong> ${item.nome}<br>
+            <strong>Hora:</strong> ${item.hora}<br>
+            <strong>Serviço:</strong> ${item.servico}<br>
+            <strong>Contato:</strong> ${item.contato}
+            <div class="botoes">
+              <button class="botao editar" data-index="${agendamentos.indexOf(item)}">✏️ Editar</button>
+              <button class="botao excluir" data-index="${agendamentos.indexOf(item)}">🗑️ Excluir</button>
+              <button class="botao atendido" data-index="${agendamentos.indexOf(item)}">✔️ Atendido</button>
+            </div>
+          `;
+          lista.appendChild(li);
+        });
+      });
+    }
+
+    // Eventos para botões editar, excluir e atendido
+    document.addEventListener("click", function (e) {
+      const index = e.target.getAttribute("data-index");
+
+      if (e.target.classList.contains("excluir")) {
+        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+          agendamentos.splice(index, 1);
+          localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+          location.reload();
+        }
+      }
+
+      if (e.target.classList.contains("editar")) {
+        const agendamento = agendamentos[index];
+        localStorage.setItem("editarAgendamento", JSON.stringify({ ...agendamento, index }));
+        window.location.href = "index.html";
+      }
+
+      if (e.target.classList.contains("atendido")) {
+        // Remove da lista pendente
+        const agendamentoAtendido = agendamentos.splice(index, 1)[0];
+        localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+
+        // Salva na lista de atendidos
+        const atendidos = JSON.parse(localStorage.getItem("agendamentosAtendidos") || "[]");
+        atendidos.push(agendamentoAtendido);
+        localStorage.setItem("agendamentosAtendidos", JSON.stringify(atendidos));
+
+        // Redireciona para página de atendidos
+        window.location.href = "AgendamentosAtendidos.html";
+      }
+    });
+  </script>
+</body>
+</html>
