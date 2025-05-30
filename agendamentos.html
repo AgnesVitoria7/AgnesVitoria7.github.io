@@ -176,9 +176,9 @@
         localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
 
         // Salva na lista de atendidos
-        const atendidos = JSON.parse(localStorage.getItem("agendamentosAtendidos") || "[]");
+        const atendidos = JSON.parse(localStorage.getItem("agendamentosatendidos") || "[]");
         atendidos.push(agendamentoAtendido);
-        localStorage.setItem("agendamentosAtendidos", JSON.stringify(atendidos));
+        localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
 
         // Redireciona para página de atendidos
         window.location.href = "agendamentosatendidos.html";
