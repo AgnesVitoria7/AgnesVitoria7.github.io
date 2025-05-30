@@ -2,9 +2,10 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agendamento de Manicure</title>
   <style>
+    /* Seu CSS aqui, igual ao que você enviou */
     * {
       box-sizing: border-box;
     }
@@ -158,7 +159,25 @@
     <div id="mensagem-sucesso" class="oculto">✅ Agendamento realizado com sucesso!</div>
   </main>
 
-  <script>
+  <!-- Firebase SDKs (modular) -->
+  <script type="module">
+    // Importando as funções Firebase via CDN modular
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
+      authDomain: "espaco-bela-flor.firebaseapp.com",
+      projectId: "espaco-bela-flor",
+      storageBucket: "espaco-bela-flor.firebasestorage.app",
+      messagingSenderId: "1073820568560",
+      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
+    };
+
+    // Inicializar Firebase e Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const form = document.getElementById("form-agendamento");
     const selectHora = document.getElementById("hora");
     const inputData = document.getElementById("data");
@@ -179,10 +198,9 @@
       let agendamentos = [];
       if (dataSelecionada) {
         try {
-          const snapshot = await db.collection("agendamentos")
-            .where("data", "==", dataSelecionada)
-            .get();
-          agendamentos = snapshot.docs.map(doc => doc.data());
+          const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
+          const querySnapshot = await getDocs(q);
+          agendamentos = querySnapshot.docs.map(doc => doc.data());
         } catch (error) {
           console.error("Erro ao buscar agendamentos: ", error);
         }
@@ -205,7 +223,7 @@
       });
     }
 
-    form.addEventListener("submit", async function (e) {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const nome = document.getElementById("nome").value.trim();
@@ -221,74 +239,51 @@
 
       try {
         // Verifica conflito no Firestore
-        const agendamentosSnapshot = await db.collection("agendamentos")
-          .where("data", "==", data)
-          .where("hora", "==", hora)
-          .get();
+        const q = query(
+          collection(db, "agendamentos"),
+          where("data", "==", data),
+          where("hora", "==", hora)
+        );
+        const querySnapshot = await getDocs(q);
 
-        if (!agendamentosSnapshot.empty) {
+        if (!querySnapshot.empty) {
           alert("⚠️ Este horário já foi agendado. Por favor, escolha outro.");
           return;
         }
 
-        // Salva o novo agendamento no Firestore
-        await db.collection("agendamentos").add({
+        // Adiciona o agendamento
+        await addDoc(collection(db, "agendamentos"), {
           nome,
           data,
           hora,
           servico,
           contato,
-          criadoEm: new Date()
+          criadoEm: Timestamp.now()
         });
 
         document.getElementById("mensagem-sucesso").classList.remove("oculto");
         form.reset();
-        carregarHorarios(data); // Atualiza os horários bloqueados para o dia selecionado
+        carregarHorarios(data);
       } catch (error) {
         console.error("Erro ao salvar agendamento: ", error);
         alert("Erro ao salvar agendamento. Tente novamente mais tarde.");
       }
     });
 
-    function verificarLogin() {
-      const usuario = prompt("Digite o usuário:");
-      const senha = prompt("Digite a senha:");
-      if (usuario === "admin" && senha === "14251200") {
-        window.location.href = "agendamentos.html";
-      } else {
-        alert("❌ Acesso negado. Usuário ou senha incorretos.");
-      }
-    }
-
-    // Inicializa os horários no carregamento da página
-    carregarHorarios();
-
-    inputData.addEventListener("change", () => {
-      if (inputData.value) {
-        carregarHorarios(inputData.value);
-      }
+    // Atualiza os horários quando a data muda
+    inputData.addEventListener("change", (e) => {
+      carregarHorarios(e.target.value);
     });
-  </script>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
-
-  <script>
-    // Configuração do Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
-      authDomain: "espaco-bela-flor.firebaseapp.com",
-      projectId: "espaco-bela-flor",
-      storageBucket: "espaco-bela-flor.firebasestorage.app",
-      messagingSenderId: "1073820568560",
-      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
+    // Carrega horários hoje por padrão (ou pode deixar vazio)
+    window.onload = () => {
+      carregarHorarios();
     };
 
-    // Inicializar o Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // Função de exemplo para o link "Acessar"
+    function verificarLogin() {
+      alert("Funcionalidade de acesso ainda não implementada.");
+    }
   </script>
-
 </body>
 </html>
