@@ -67,10 +67,16 @@
       cursor: pointer;
       font-size: 0.9rem;
       transition: background 0.3s;
+      user-select: none;
     }
 
-    .botao:hover {
+    .botao:hover:not(:disabled) {
       background-color: #d15b91;
+    }
+
+    .botao:disabled {
+      background-color: #f4b9ce;
+      cursor: not-allowed;
     }
 
     .voltar {
@@ -83,6 +89,7 @@
       padding: 0.75rem 1.5rem;
       border-radius: 8px;
       transition: background 0.3s;
+      user-select: none;
     }
 
     .voltar:hover {
@@ -101,7 +108,23 @@
   </main>
 
   <script>
-    const agendamentos = JSON.parse(localStorage.getItem("agendamentos") || "[]");
+    function carregarAgendamentos() {
+      return JSON.parse(localStorage.getItem("agendamentos") || "[]");
+    }
+
+    function salvarAgendamentos(agendamentos) {
+      localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+    }
+
+    function carregarAtendidos() {
+      return JSON.parse(localStorage.getItem("agendamentosatendidos") || "[]");
+    }
+
+    function salvarAtendidos(atendidos) {
+      localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
+    }
+
+    const agendamentos = carregarAgendamentos();
 
     // Agrupa agendamentos por data
     const agendamentosPorData = {};
@@ -115,36 +138,40 @@
     const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
     const lista = document.getElementById("lista-agendamentos");
 
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
     if (agendamentos.length === 0) {
-      lista.innerHTML = "<p style='text-align:center;'>Nenhum agendamento encontrado.</p>";
+      lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Nenhum agendamento encontrado.</p>";
     } else {
       datasOrdenadas.forEach(data => {
         const tituloData = document.createElement("h2");
         const [ano, mes, dia] = data.split("-");
         const dataFormatada = new Date(ano, mes - 1, dia);
 
-        tituloData.textContent = dataFormatada.toLocaleDateString("pt-BR", {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
+        // Capitalizar nome do dia da semana
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        let dataTexto = dataFormatada.toLocaleDateString("pt-BR", options);
+        dataTexto = capitalizeFirstLetter(dataTexto);
 
+        tituloData.textContent = dataTexto;
         lista.appendChild(tituloData);
 
         const agendamentosOrdenados = agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
 
         agendamentosOrdenados.forEach(item => {
           const li = document.createElement("li");
+
           li.innerHTML = `
             <strong>Nome:</strong> ${item.nome}<br>
             <strong>Hora:</strong> ${item.hora}<br>
             <strong>Serviço:</strong> ${item.servico}<br>
             <strong>Contato:</strong> ${item.contato}
             <div class="botoes">
-              <button class="botao editar" data-index="${agendamentos.indexOf(item)}">✏️ Editar</button>
-              <button class="botao excluir" data-index="${agendamentos.indexOf(item)}">🗑️ Excluir</button>
-              <button class="botao atendido" data-index="${agendamentos.indexOf(item)}">✔️ Atendido</button>
+              <button class="botao editar" data-index="${agendamentos.indexOf(item)}" title="Editar">✏️ Editar</button>
+              <button class="botao excluir" data-index="${agendamentos.indexOf(item)}" title="Excluir">🗑️ Excluir</button>
+              <button class="botao atendido" data-index="${agendamentos.indexOf(item)}" title="Marcar como atendido">✔️ Atendido</button>
             </div>
           `;
           lista.appendChild(li);
@@ -152,36 +179,38 @@
       });
     }
 
-    // Eventos para botões editar, excluir e atendido
     document.addEventListener("click", function (e) {
       const index = e.target.getAttribute("data-index");
+
+      if (index === null) return; // sem índice, ignora
 
       if (e.target.classList.contains("excluir")) {
         if (confirm("Tem certeza que deseja excluir este agendamento?")) {
           agendamentos.splice(index, 1);
-          localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+          salvarAgendamentos(agendamentos);
           location.reload();
         }
       }
 
       if (e.target.classList.contains("editar")) {
         const agendamento = agendamentos[index];
-        localStorage.setItem("editarAgendamento", JSON.stringify({ ...agendamento, index }));
-        window.location.href = "index.html";
+        if (agendamento) {
+          localStorage.setItem("editarAgendamento", JSON.stringify({ ...agendamento, index }));
+          window.location.href = "index.html";
+        }
       }
 
       if (e.target.classList.contains("atendido")) {
-        // Remove da lista pendente
         const agendamentoAtendido = agendamentos.splice(index, 1)[0];
-        localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+        if (agendamentoAtendido) {
+          salvarAgendamentos(agendamentos);
 
-        // Salva na lista de atendidos
-        const atendidos = JSON.parse(localStorage.getItem("agendamentosatendidos") || "[]");
-        atendidos.push(agendamentoAtendido);
-        localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
+          const atendidos = carregarAtendidos();
+          atendidos.push(agendamentoAtendido);
+          salvarAtendidos(atendidos);
 
-        // Redireciona para página de atendidos
-        window.location.href = "agendamentosatendidos.html";
+          window.location.href = "agendamentosatendidos.html";
+        }
       }
     });
   </script>
