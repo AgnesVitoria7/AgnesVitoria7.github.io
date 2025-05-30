@@ -242,6 +242,25 @@
       }
     }
   </script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+
+<script>
+  // Configuração do Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
+    authDomain: "espaco-bela-flor.firebaseapp.com",
+    projectId: "espaco-bela-flor",
+    storageBucket: "espaco-bela-flor.firebasestorage.app",
+    messagingSenderId: "1073820568560",
+    appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
+  };
+
+  // Inicializar o Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 
 </body>
 </html>
