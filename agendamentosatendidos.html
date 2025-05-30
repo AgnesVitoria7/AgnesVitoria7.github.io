@@ -97,7 +97,7 @@
   </main>
 
   <script>
-    const atendidos = JSON.parse(localStorage.getItem("agendamentosAtendidos") || "[]");
+    const atendidos = JSON.parse(localStorage.getItem("agendamentosatendidos") || "[]");
 
     // Agrupa atendidos por data
     const atendidosPorData = {};
@@ -151,7 +151,7 @@
         const idx = e.target.getAttribute("data-index");
         if (confirm("Tem certeza que deseja excluir este agendamento atendido?")) {
           atendidos.splice(idx, 1);
-          localStorage.setItem("agendamentosAtendidos", JSON.stringify(atendidos));
+          localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
           location.reload();
         }
       }
