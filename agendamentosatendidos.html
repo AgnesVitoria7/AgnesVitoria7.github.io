@@ -138,6 +138,7 @@
             <strong>Serviço:</strong> ${item.servico}<br>
             <strong>Contato:</strong> ${item.contato}
             <div class="botoes">
+              <button class="botao restaurar" data-index="${index}">🔄 Restaurar</button>
               <button class="botao excluir-atendido" data-index="${index}">🗑️ Excluir</button>
             </div>
           `;
@@ -154,6 +155,18 @@
           localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
           location.reload();
         }
+      }
+
+      if (e.target.classList.contains("restaurar")) {
+        const idx = e.target.getAttribute("data-index");
+        const agendamentoRestaurado = atendidos.splice(idx, 1)[0];
+        localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
+
+        const agendamentosPendentes = JSON.parse(localStorage.getItem("agendamentos") || "[]");
+        agendamentosPendentes.push(agendamentoRestaurado);
+        localStorage.setItem("agendamentos", JSON.stringify(agendamentosPendentes));
+
+        location.reload();
       }
     });
   </script>
