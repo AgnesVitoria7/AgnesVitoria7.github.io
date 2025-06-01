@@ -2,98 +2,114 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agendamentos - Espaço Bela Flor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista de Agendamentos</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
     body {
       font-family: 'Arial', sans-serif;
       background-image: url('/Imagens/rosinha.png');
       background-size: cover;
       background-position: center;
-      background-repeat: no-repeat;
-      color: #444;
       margin: 0;
-      padding: 2rem;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      padding: 0;
     }
+
     main {
-      max-width: 600px;
-      width: 100%;
-      padding: 2.5rem 2rem 3rem;
-      background: #ffffffdd;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
-      text-align: center;
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #ffffffee;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
+
     h1 {
-      margin: 0 0 1rem;
-      font-weight: 700;
-      font-size: 2.25rem;
-      color: #d15b91;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      letter-spacing: 1.2px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1.5rem;
-    }
-    thead tr {
-      background-color: #f8d7e1;
-    }
-    th, td {
-      padding: 0.75rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid #e6c0d7;
-      color: #6e4668;
-    }
-    th {
-      font-weight: 700;
+      text-align: center;
       color: #d15b91;
     }
-    tbody tr:hover {
-      background-color: #fce4ec;
+
+    h2 {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+      color: #d15b91;
+      border-bottom: 1px solid #f8cce7;
+      padding-bottom: 0.3rem;
+      text-transform: capitalize;
     }
-    .mensagem {
-      margin-top: 1.5rem;
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #f8cce7;
+      margin: 1rem 0;
       padding: 1rem;
-      background: #f8d7e1;
-      color: #6e4668;
-      border: 1px solid #dba2c3;
       border-radius: 8px;
-      font-weight: 600;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .botoes {
+      margin-top: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .botao {
+      background-color: #e26ca4;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.3s;
+      user-select: none;
+    }
+
+    .botao:hover:not(:disabled) {
+      background-color: #d15b91;
+    }
+
+    .botao:disabled {
+      background-color: #f4b9ce;
+      cursor: not-allowed;
+    }
+
+    .voltar {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      text-decoration: none;
+      color: white;
+      background-color: #e26ca4;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      transition: background 0.3s;
+      user-select: none;
+    }
+
+    .voltar:hover {
+      background-color: #d15b91;
     }
   </style>
 </head>
 <body>
   <main>
     <h1>Agendamentos</h1>
-    <table>
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Data</th>
-          <th>Hora</th>
-          <th>Serviço</th>
-          <th>Contato</th>
-        </tr>
-      </thead>
-      <tbody id="tabela-agendamentos">
-        <tr><td colspan="5">Carregando...</td></tr>
-      </tbody>
-    </table>
-    <div id="mensagem" class="mensagem" style="display:none;"></div>
+    <ul id="lista-agendamentos"></ul>
+    <a href="index.html" class="voltar">Voltar ao Agendamento</a>
+    <a href="agendamentosatendidos.html" class="voltar" style="margin-top: 0.5rem; background-color: #d15b91;">
+      Agendamentos Atendidos
+    </a>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
@@ -107,43 +123,157 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const tabela = document.getElementById("tabela-agendamentos");
-    const mensagem = document.getElementById("mensagem");
+    const lista = document.getElementById("lista-agendamentos");
 
+    // Função para capitalizar a primeira letra
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // Função para carregar agendamentos do Firebase
     async function carregarAgendamentos() {
-      tabela.innerHTML = "";
-      mensagem.style.display = "none";
-
+      lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Carregando agendamentos...</p>";
       try {
-        const querySnapshot = await getDocs(collection(db, "agendamentos"));
+        const snapshot = await getDocs(collection(db, "agendamentos"));
+        const agendamentos = [];
+        snapshot.forEach(doc => {
+          agendamentos.push({ id: doc.id, ...doc.data() });
+        });
 
-        if (querySnapshot.empty) {
-          tabela.innerHTML = `<tr><td colspan="5">Nenhum agendamento encontrado.</td></tr>`;
+        if (agendamentos.length === 0) {
+          lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Nenhum agendamento encontrado.</p>";
           return;
         }
 
-        querySnapshot.forEach(doc => {
-          const agendamento = doc.data();
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${agendamento.nome}</td>
-            <td>${agendamento.data}</td>
-            <td>${agendamento.hora}</td>
-            <td>${agendamento.servico}</td>
-            <td>${agendamento.contato}</td>
-          `;
-          tabela.appendChild(tr);
+        // Agrupa por data
+        const agendamentosPorData = {};
+        agendamentos.forEach(ag => {
+          if (!agendamentosPorData[ag.data]) {
+            agendamentosPorData[ag.data] = [];
+          }
+          agendamentosPorData[ag.data].push(ag);
+        });
+
+        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
+        lista.innerHTML = ""; // limpa lista
+
+        datasOrdenadas.forEach(data => {
+          const tituloData = document.createElement("h2");
+          const [ano, mes, dia] = data.split("-");
+          const dataFormatada = new Date(ano, mes - 1, dia);
+
+          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+          let dataTexto = dataFormatada.toLocaleDateString("pt-BR", options);
+          dataTexto = capitalizeFirstLetter(dataTexto);
+
+          tituloData.textContent = dataTexto;
+          lista.appendChild(tituloData);
+
+          const agendamentosOrdenados = agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
+
+          agendamentosOrdenados.forEach(item => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+              <strong>Nome:</strong> ${item.nome}<br>
+              <strong>Hora:</strong> ${item.hora}<br>
+              <strong>Serviço:</strong> ${item.servico}<br>
+              <strong>Contato:</strong> ${item.contato}
+              <div class="botoes">
+                <button class="botao editar" data-id="${item.id}" title="Editar">✏️ Editar</button>
+                <button class="botao excluir" data-id="${item.id}" title="Excluir">🗑️ Excluir</button>
+                <button class="botao atendido" data-id="${item.id}" title="Marcar como atendido">✔️ Atendido</button>
+              </div>
+            `;
+            lista.appendChild(li);
+          });
         });
 
       } catch (error) {
         console.error("Erro ao carregar agendamentos:", error);
-        mensagem.textContent = "Erro ao carregar os agendamentos. Tente novamente mais tarde.";
-        mensagem.style.display = "block";
-        tabela.innerHTML = "";
+        lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Erro ao carregar agendamentos.</p>";
       }
     }
 
-    window.onload = carregarAgendamentos;
+    // Excluir agendamento pelo ID
+    async function excluirAgendamento(id) {
+      if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
+      try {
+        await deleteDoc(doc(db, "agendamentos", id));
+        carregarAgendamentos();
+      } catch (error) {
+        alert("Erro ao excluir agendamento.");
+        console.error(error);
+      }
+    }
+
+    // Editar: salvar no localStorage e ir para index.html para editar
+    async function editarAgendamento(id) {
+      try {
+        const docRef = doc(db, "agendamentos", id);
+        const docSnap = await getDocs(collection(db, "agendamentos"));
+        const snapshot = await getDocs(collection(db, "agendamentos"));
+        // Como getDoc para um só doc não foi importado, vamos usar getDoc
+        import { getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+        const docSnapSingle = await getDoc(docRef);
+
+        if (docSnapSingle.exists()) {
+          const agendamento = docSnapSingle.data();
+          localStorage.setItem("editarAgendamento", JSON.stringify({ ...agendamento, id }));
+          window.location.href = "index.html";
+        } else {
+          alert("Agendamento não encontrado para edição.");
+        }
+      } catch (error) {
+        alert("Erro ao carregar agendamento para edição.");
+        console.error(error);
+      }
+    }
+
+    // Marcar como atendido: mover do 'agendamentos' para 'agendamentosatendidos'
+    async function marcarAtendido(id) {
+      try {
+        // Pega dados do agendamento
+        const docRef = doc(db, "agendamentos", id);
+        import { getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          alert("Agendamento não encontrado.");
+          return;
+        }
+
+        const agendamento = docSnap.data();
+
+        // Adiciona em agendamentosatendidos
+        await addDoc(collection(db, "agendamentosatendidos"), agendamento);
+
+        // Remove do agendamentos
+        await deleteDoc(doc(db, "agendamentos", id));
+
+        // Redireciona para lista de atendidos
+        window.location.href = "agendamentosatendidos.html";
+      } catch (error) {
+        alert("Erro ao marcar como atendido.");
+        console.error(error);
+      }
+    }
+
+    // Eventos dos botões
+    document.addEventListener("click", e => {
+      const id = e.target.getAttribute("data-id");
+      if (!id) return;
+
+      if (e.target.classList.contains("excluir")) {
+        excluirAgendamento(id);
+      } else if (e.target.classList.contains("editar")) {
+        editarAgendamento(id);
+      } else if (e.target.classList.contains("atendido")) {
+        marcarAtendido(id);
+      }
+    });
+
+    // Carrega agendamentos na inicialização
+    carregarAgendamentos();
   </script>
 </body>
 </html>
