@@ -10,54 +10,35 @@
       background-color: #fff0f5;
       margin: 0;
       padding: 2rem;
-      color: #6a305a;
     }
     h1 {
       text-align: center;
       color: #d15b91;
-      margin-bottom: 1rem;
     }
-    h2 {
-      color: #d15b91;
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 2rem;
-      margin-bottom: 1rem;
-      text-transform: capitalize;
-      border-bottom: 2px solid #f8cce7;
-      padding-bottom: 0.3rem;
-      font-size: 1.4rem;
-    }
-    ul.lista-agendamentos {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 2rem 0;
-    }
-    li.agendamento-item {
       background: #fff;
       border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(209, 91, 145, 0.15);
-      padding: 1rem 1.2rem;
-      margin-bottom: 1rem;
-      transition: background-color 0.3s;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
     }
-    li.agendamento-item:hover {
-      background-color: #f9e1ec;
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
     }
-    .agendamento-info {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      font-size: 1rem;
-    }
-    .agendamento-info span {
-      flex: 1 1 150px;
-      font-weight: 600;
+    th {
+      background-color: #fce4ec;
       color: #8e2c63;
     }
+    tr:hover {
+      background-color: #f9e1ec;
+    }
     .botoes {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
       margin-top: 2rem;
+      text-align: center;
     }
     .botao-link {
       background-color: #e26ca4;
@@ -68,7 +49,6 @@
       cursor: pointer;
       font-weight: bold;
       text-decoration: none;
-      user-select: none;
       transition: background-color 0.3s;
     }
     .botao-link:hover {
@@ -78,13 +58,22 @@
 </head>
 <body>
   <h1>Agendamentos</h1>
-
-  <div id="container-agendamentos">
-    <p style="text-align:center; color:#d15b91; font-weight:bold;">Carregando...</p>
-  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Data</th>
+        <th>Hora</th>
+        <th>Serviço</th>
+        <th>Contato</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-agendamentos">
+      <tr><td colspan="5">Carregando...</td></tr>
+    </tbody>
+  </table>
 
   <div class="botoes">
-    <a href="agendamentosatendidos.html" class="botao-link">Agendamentos Atendidos</a>
     <a href="index.html" class="botao-link">Voltar</a>
   </div>
 
@@ -104,79 +93,34 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function capitalizeFirstLetter(str) {
-      if (!str) return "";
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
     async function carregarAgendamentos() {
-      const container = document.getElementById('container-agendamentos');
-      container.innerHTML = '';
+      const tabela = document.getElementById("tabela-agendamentos");
+      tabela.innerHTML = "";
 
       try {
-        const snapshot = await getDocs(collection(db, "agendamentos"));
+        const querySnapshot = await getDocs(collection(db, "agendamentos"));
 
-        if (snapshot.empty) {
-          container.innerHTML = '<p style="text-align:center;">Nenhum agendamento encontrado.</p>';
+        if (querySnapshot.empty) {
+          tabela.innerHTML = "<tr><td colspan='5'>Nenhum agendamento encontrado.</td></tr>";
           return;
         }
 
-        const agendamentosPorData = {};
-        snapshot.forEach(doc => {
-          const ag = doc.data();
-          const dataAgendamento = ag.data || "Sem data";
+        querySnapshot.forEach(doc => {
+          const agendamento = doc.data();
+          const tr = document.createElement("tr");
 
-          if (!agendamentosPorData[dataAgendamento]) {
-            agendamentosPorData[dataAgendamento] = [];
-          }
-
-          agendamentosPorData[dataAgendamento].push(ag);
+          tr.innerHTML = `
+            <td>${agendamento.nome}</td>
+            <td>${agendamento.data}</td>
+            <td>${agendamento.hora}</td>
+            <td>${agendamento.servico}</td>
+            <td>${agendamento.contato}</td>
+          `;
+          tabela.appendChild(tr);
         });
-
-        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(a) - new Date(b));
-
-        datasOrdenadas.forEach(dataAgendamento => {
-          let dataFormatada = new Date(dataAgendamento);
-          let textoData = isNaN(dataFormatada)
-            ? dataAgendamento
-            : capitalizeFirstLetter(
-                dataFormatada.toLocaleDateString('pt-BR', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })
-              );
-
-          const tituloData = document.createElement('h2');
-          tituloData.textContent = textoData;
-          container.appendChild(tituloData);
-
-          const lista = document.createElement('ul');
-          lista.className = 'lista-agendamentos';
-
-          agendamentosPorData[dataAgendamento]
-            .sort((a, b) => a.hora.localeCompare(b.hora))
-            .forEach(ag => {
-              const item = document.createElement('li');
-              item.className = 'agendamento-item';
-              item.innerHTML = `
-                <div class="agendamento-info">
-                  <span><strong>Nome:</strong> ${ag.nome}</span>
-                  <span><strong>Hora:</strong> ${ag.hora}</span>
-                  <span><strong>Serviço:</strong> ${ag.servico}</span>
-                  <span><strong>Contato:</strong> ${ag.contato}</span>
-                </div>
-              `;
-              lista.appendChild(item);
-            });
-
-          container.appendChild(lista);
-        });
-
       } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
-        container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar dados.</p>';
+        console.error("Erro ao carregar agendamentos:", error);
+        tabela.innerHTML = "<tr><td colspan='5'>Erro ao carregar dados.</td></tr>";
       }
     }
 
