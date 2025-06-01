@@ -14,15 +14,24 @@
     h1 {
       text-align: center;
       color: #d15b91;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      color: #d15b91;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      text-transform: capitalize;
+      border-bottom: 1px solid #f8cce7;
+      padding-bottom: 0.2rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 2rem;
       background: #fff;
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
+      margin-bottom: 2rem;
     }
     th, td {
       padding: 0.8rem 1rem;
@@ -36,24 +45,40 @@
     tr:hover {
       background-color: #f9e1ec;
     }
+    .botoes {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .botao-link {
+      background-color: #e26ca4;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      user-select: none;
+      transition: background-color 0.3s;
+    }
+    .botao-link:hover {
+      background-color: #d15b91;
+    }
   </style>
 </head>
 <body>
   <h1>Agendamentos</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Data</th>
-        <th>Hora</th>
-        <th>Serviço</th>
-        <th>Contato</th>
-      </tr>
-    </thead>
-    <tbody id="tabela-agendamentos">
-      <tr><td colspan="5">Carregando...</td></tr>
-    </tbody>
-  </table>
+
+  <div id="container-agendamentos">
+    <p style="text-align:center; color:#d15b91; font-weight:bold;">Carregando...</p>
+  </div>
+
+  <div class="botoes">
+    <a href="agendamentosatendidos.html" class="botao-link">Agendamentos Atendidos</a>
+    <a href="index.html" class="botao-link">Voltar</a>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -71,34 +96,74 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Função para capitalizar primeira letra
+    function capitalizeFirstLetter(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
     async function carregarAgendamentos() {
-      const tabela = document.getElementById("tabela-agendamentos");
-      tabela.innerHTML = "";
+      const container = document.getElementById('container-agendamentos');
+      container.innerHTML = '';
 
       try {
-        const querySnapshot = await getDocs(collection(db, "agendamentos"));
+        const snapshot = await getDocs(collection(db, "agendamentos"));
 
-        if (querySnapshot.empty) {
-          tabela.innerHTML = "<tr><td colspan='5'>Nenhum agendamento encontrado.</td></tr>";
+        if (snapshot.empty) {
+          container.innerHTML = '<p style="text-align:center;">Nenhum agendamento encontrado.</p>';
           return;
         }
 
-        querySnapshot.forEach(doc => {
+        // Agrupar agendamentos por data
+        const agendamentosPorData = {};
+        snapshot.forEach(doc => {
           const agendamento = doc.data();
-          const tr = document.createElement("tr");
-
-          tr.innerHTML = `
-            <td>${agendamento.nome}</td>
-            <td>${agendamento.data}</td>
-            <td>${agendamento.hora}</td>
-            <td>${agendamento.servico}</td>
-            <td>${agendamento.contato}</td>
-          `;
-          tabela.appendChild(tr);
+          const data = agendamento.data || "Sem data";
+          if (!agendamentosPorData[data]) agendamentosPorData[data] = [];
+          agendamentosPorData[data].push(agendamento);
         });
+
+        // Ordenar datas
+        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a,b) => new Date(a) - new Date(b));
+
+        // Para cada data, criar um título e tabela com agendamentos
+        datasOrdenadas.forEach(data => {
+          // Título da data (formatado)
+          const dataFormatada = new Date(data);
+          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+          const dataTexto = isNaN(dataFormatada) ? data : capitalizeFirstLetter(dataFormatada.toLocaleDateString('pt-BR', options));
+
+          const titulo = document.createElement('h2');
+          titulo.textContent = dataTexto;
+          container.appendChild(titulo);
+
+          // Tabela
+          const tabela = document.createElement('table');
+          tabela.innerHTML = `
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Hora</th>
+                <th>Serviço</th>
+                <th>Contato</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agendamentosPorData[data].sort((a,b) => a.hora.localeCompare(b.hora)).map(ag => `
+                <tr>
+                  <td>${ag.nome}</td>
+                  <td>${ag.hora}</td>
+                  <td>${ag.servico}</td>
+                  <td>${ag.contato}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          `;
+          container.appendChild(tabela);
+        });
+
       } catch (error) {
         console.error("Erro ao carregar agendamentos:", error);
-        tabela.innerHTML = "<tr><td colspan='5'>Erro ao carregar dados.</td></tr>";
+        container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar dados.</p>';
       }
     }
 
