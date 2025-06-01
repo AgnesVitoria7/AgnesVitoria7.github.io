@@ -2,184 +2,104 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lista de Agendamentos</title>
   <style>
-    /* (Mantido igual ao seu estilo original) */
     body {
       font-family: 'Arial', sans-serif;
-      background-image: url('/Imagens/rosinha.png');
-      background-size: cover;
-      background-position: center;
+      background-color: #fff0f5;
       margin: 0;
-      padding: 0;
-    }
-
-    main {
-      max-width: 700px;
-      margin: 2rem auto;
       padding: 2rem;
-      background: #ffffffee;
-      border-radius: 12px;
-      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
-
     h1 {
       text-align: center;
       color: #d15b91;
     }
-
-    h2 {
-      font-size: 1.2rem;
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 2rem;
-      color: #d15b91;
-      border-bottom: 1px solid #f8cce7;
-      padding-bottom: 0.3rem;
-      text-transform: capitalize;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
     }
-
-    ul {
-      list-style: none;
-      padding: 0;
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
     }
-
-    li {
-      background: #f8cce7;
-      margin: 1rem 0;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+    th {
+      background-color: #fce4ec;
+      color: #8e2c63;
     }
-
-    .botoes {
-      margin-top: 0.75rem;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .botao {
-      background-color: #e26ca4;
-      color: white;
-      border: none;
-      padding: 0.4rem 0.8rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.3s;
-      user-select: none;
-    }
-
-    .botao:hover:not(:disabled) {
-      background-color: #d15b91;
-    }
-
-    .voltar {
-      display: block;
-      text-align: center;
-      margin-top: 1.5rem;
-      text-decoration: none;
-      color: white;
-      background-color: #e26ca4;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      transition: background 0.3s;
-      user-select: none;
-    }
-
-    .voltar:hover {
-      background-color: #d15b91;
+    tr:hover {
+      background-color: #f9e1ec;
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Agendamentos</h1>
-    <ul id="lista-agendamentos"></ul>
-    <a href="index.html" class="voltar">Voltar ao Agendamento</a>
-    <a href="agendamentosatendidos.html" class="voltar" style="margin-top: 0.5rem; background-color: #d15b91;">
-      Agendamentos Atendidos
-    </a>
-  </main>
+  <h1>Agendamentos</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Data</th>
+        <th>Hora</th>
+        <th>Serviço</th>
+        <th>Contato</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-agendamentos">
+      <tr><td colspan="5">Carregando...</td></tr>
+    </tbody>
+  </table>
 
-  <!-- Firebase SDKs -->
   <script type="module">
-    // Importa Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-    // 🔒 Substitua com suas credenciais do Firebase
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_DOMINIO.firebaseapp.com",
-      projectId: "SEU_PROJECT_ID",
-      storageBucket: "SEU_BUCKET.appspot.com",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SEU_APP_ID"
+      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
+      authDomain: "espaco-bela-flor.firebaseapp.com",
+      projectId: "espaco-bela-flor",
+      storageBucket: "espaco-bela-flor.appspot.com",
+      messagingSenderId: "1073820568560",
+      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const lista = document.getElementById("lista-agendamentos");
-
-    function capitalizeFirstLetter(string) {
-      return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-
     async function carregarAgendamentos() {
-      const agendamentosSnap = await getDocs(collection(db, "agendamentos"));
-      const agendamentos = agendamentosSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const tabela = document.getElementById("tabela-agendamentos");
+      tabela.innerHTML = "";
 
-      if (agendamentos.length === 0) {
-        lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Nenhum agendamento encontrado.</p>";
-        return;
-      }
+      try {
+        const querySnapshot = await getDocs(collection(db, "agendamentos"));
 
-      // Agrupar por data
-      const agendamentosPorData = {};
-      agendamentos.forEach(ag => {
-        if (!agendamentosPorData[ag.data]) {
-          agendamentosPorData[ag.data] = [];
+        if (querySnapshot.empty) {
+          tabela.innerHTML = "<tr><td colspan='5'>Nenhum agendamento encontrado.</td></tr>";
+          return;
         }
-        agendamentosPorData[ag.data].push(ag);
-      });
 
-      const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
+        querySnapshot.forEach(doc => {
+          const agendamento = doc.data();
+          const tr = document.createElement("tr");
 
-      datasOrdenadas.forEach(data => {
-        const [ano, mes, dia] = data.split("-");
-        const dataFormatada = new Date(ano, mes - 1, dia);
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        let dataTexto = dataFormatada.toLocaleDateString("pt-BR", options);
-        dataTexto = capitalizeFirstLetter(dataTexto);
-
-        const tituloData = document.createElement("h2");
-        tituloData.textContent = dataTexto;
-        lista.appendChild(tituloData);
-
-        const agendamentosOrdenados = agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
-
-        agendamentosOrdenados.forEach(item => {
-          const li = document.createElement("li");
-          li.innerHTML = `
-            <strong>Nome:</strong> ${item.nome}<br>
-            <strong>Hora:</strong> ${item.hora}<br>
-            <strong>Serviço:</strong> ${item.servico}<br>
-            <strong>Contato:</strong> ${item.contato}
-            <div class="botoes">
-              <!-- Os botões podem ser conectados com futuras funcionalidades -->
-              <button class="botao" disabled>✏️ Editar</button>
-              <button class="botao" disabled>🗑️ Excluir</button>
-              <button class="botao" disabled>✔️ Atendido</button>
-            </div>
+          tr.innerHTML = `
+            <td>${agendamento.nome}</td>
+            <td>${agendamento.data}</td>
+            <td>${agendamento.hora}</td>
+            <td>${agendamento.servico}</td>
+            <td>${agendamento.contato}</td>
           `;
-          lista.appendChild(li);
+          tabela.appendChild(tr);
         });
-      });
+      } catch (error) {
+        console.error("Erro ao carregar agendamentos:", error);
+        tabela.innerHTML = "<tr><td colspan='5'>Erro ao carregar dados.</td></tr>";
+      }
     }
 
     carregarAgendamentos();
