@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agendamento de Manicure</title>
   <style>
-    /* Seu CSS aqui, igual ao que você enviou */
     * {
       box-sizing: border-box;
     }
@@ -161,20 +160,19 @@
 
   <!-- Firebase SDKs (modular) -->
   <script type="module">
-    // Importando as funções Firebase via CDN modular
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
+    // ⚠️ ATENÇÃO: embora a apiKey não seja secreta, proteja seu Firestore com regras!
     const firebaseConfig = {
       apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
       authDomain: "espaco-bela-flor.firebaseapp.com",
       projectId: "espaco-bela-flor",
-      storageBucket: "espaco-bela-flor.firebasestorage.app",
+      storageBucket: "espaco-bela-flor.appspot.com", // corrigido
       messagingSenderId: "1073820568560",
       appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
     };
 
-    // Inicializar Firebase e Firestore
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
@@ -216,6 +214,7 @@
           if (ocupado) {
             option.disabled = true;
             option.textContent += " (indisponível)";
+            option.style.color = "#aaa"; // estilo visual para desativado
           }
         }
 
@@ -238,7 +237,6 @@
       }
 
       try {
-        // Verifica conflito no Firestore
         const q = query(
           collection(db, "agendamentos"),
           where("data", "==", data),
@@ -251,7 +249,6 @@
           return;
         }
 
-        // Adiciona o agendamento
         await addDoc(collection(db, "agendamentos"), {
           nome,
           data,
@@ -270,17 +267,14 @@
       }
     });
 
-    // Atualiza os horários quando a data muda
     inputData.addEventListener("change", (e) => {
       carregarHorarios(e.target.value);
     });
 
-    // Carrega horários hoje por padrão (ou pode deixar vazio)
     window.onload = () => {
       carregarHorarios();
     };
 
-    // Função de exemplo para o link "Acessar"
     function verificarLogin() {
       alert("Funcionalidade de acesso ainda não implementada.");
     }
