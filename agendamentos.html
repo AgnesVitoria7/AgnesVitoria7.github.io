@@ -1,13 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Teste Firebase</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agendamentos</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-image: url('/Imagens/rosinha.png');
+      background-size: cover;
+      background-position: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    main {
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #ffffffee;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #d15b91;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+      color: #d15b91;
+      border-bottom: 1px solid #f8cce7;
+      padding-bottom: 0.3rem;
+      text-transform: capitalize;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #f8cce7;
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .botoes {
+      margin-top: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .botao {
+      background-color: #e26ca4;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.3s;
+      user-select: none;
+    }
+
+    .botao:hover:not(:disabled) {
+      background-color: #d15b91;
+    }
+
+    .botao:disabled {
+      background-color: #f4b9ce;
+      cursor: not-allowed;
+    }
+
+    .botoes-acoes {
+      display: flex;
+      justify-content: center;
+      margin-top: 2rem;
+      gap: 1rem;
+    }
+
+    .link-botao {
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+      color: white;
+      background-color: #e26ca4;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      transition: background 0.3s;
+      user-select: none;
+      font-weight: bold;
+    }
+
+    .link-botao:hover {
+      background-color: #d15b91;
+    }
+  </style>
 </head>
 <body>
-  <h1>Teste Firebase</h1>
+  <main>
+    <h1>Agendamentos</h1>
+    <ul id="lista-agendamentos"></ul>
+    <div class="botoes-acoes">
+      <a href="agendamentosatendidos.html" class="link-botao">Agendamentos Atendidos</a>
+      <a href="index.html" class="link-botao">Voltar</a>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <script>
+    // Sua configuração do Firebase (substitua com a sua real)
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
       authDomain: "SEU_AUTH_DOMAIN.firebaseapp.com",
@@ -17,17 +130,138 @@
       messagingSenderId: "SEU_MESSAGING_SENDER_ID",
       appId: "SEU_APP_ID"
     };
+
+    // Inicializa Firebase
     firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-    console.log('Firebase apps:', firebase.apps.length);
+    // Função para capitalizar a primeira letra
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
 
-    firebase.database().ref('/').once('value')
-      .then(snapshot => {
-        console.log('Dados do Firebase:', snapshot.val());
-      })
-      .catch(error => {
-        console.error('Erro ao ler Firebase:', error);
+    // Carregar agendamentos do Firebase
+    function carregarAgendamentos() {
+      const lista = document.getElementById('lista-agendamentos');
+      lista.innerHTML = '<p style="text-align:center; color:#d15b91; font-weight:bold;">Carregando agendamentos...</p>';
+
+      database.ref('agendamentos').once('value')
+        .then(snapshot => {
+          const dados = snapshot.val();
+          if (!dados) {
+            lista.innerHTML = '<p style="text-align:center; color:#d15b91; font-weight:bold;">Nenhum agendamento encontrado.</p>';
+            return;
+          }
+
+          // Converte objeto em array com id para manipulação
+          const agendamentos = Object.entries(dados).map(([id, item]) => ({ id, ...item }));
+
+          // Agrupa por data
+          const agendamentosPorData = {};
+          agendamentos.forEach(ag => {
+            if (!agendamentosPorData[ag.data]) {
+              agendamentosPorData[ag.data] = [];
+            }
+            agendamentosPorData[ag.data].push(ag);
+          });
+
+          // Ordena as datas
+          const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(a) - new Date(b));
+
+          lista.innerHTML = '';
+
+          datasOrdenadas.forEach(data => {
+            const tituloData = document.createElement('h2');
+            const [ano, mes, dia] = data.split('-');
+            const dataFormatada = new Date(ano, mes - 1, dia);
+
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            let dataTexto = dataFormatada.toLocaleDateString('pt-BR', options);
+            dataTexto = capitalizeFirstLetter(dataTexto);
+            tituloData.textContent = dataTexto;
+            lista.appendChild(tituloData);
+
+            // Ordena agendamentos por hora
+            agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora)).forEach(item => {
+              const li = document.createElement('li');
+              li.innerHTML = `
+                <strong>Nome:</strong> ${item.nome}<br>
+                <strong>Hora:</strong> ${item.hora}<br>
+                <strong>Serviço:</strong> ${item.servico}<br>
+                <strong>Contato:</strong> ${item.contato}
+                <div class="botoes">
+                  <button class="botao editar" data-id="${item.id}" title="Editar">✏️ Editar</button>
+                  <button class="botao excluir" data-id="${item.id}" title="Excluir">🗑️ Excluir</button>
+                  <button class="botao atendido" data-id="${item.id}" title="Marcar como atendido">✔️ Atendido</button>
+                </div>
+              `;
+              lista.appendChild(li);
+            });
+          });
+        })
+        .catch(error => {
+          lista.innerHTML = `<p style="color:red; text-align:center;">Erro ao carregar agendamentos: ${error.message}</p>`;
+          console.error(error);
+        });
+    }
+
+    // Funções para ações dos botões
+
+    function editarAgendamento(id) {
+      database.ref('agendamentos/' + id).once('value').then(snapshot => {
+        const agendamento = snapshot.val();
+        if (!agendamento) {
+          alert('Agendamento não encontrado!');
+          return;
+        }
+        // Salva no localStorage para usar no formulário de edição na index.html
+        localStorage.setItem('editarAgendamento', JSON.stringify({ id, ...agendamento }));
+        window.location.href = 'index.html';
       });
+    }
+
+    function excluirAgendamento(id) {
+      if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+      database.ref('agendamentos/' + id).remove()
+        .then(() => carregarAgendamentos())
+        .catch(err => alert('Erro ao excluir: ' + err.message));
+    }
+
+    function marcarAtendido(id) {
+      database.ref('agendamentos/' + id).once('value')
+        .then(snapshot => {
+          const agendamento = snapshot.val();
+          if (!agendamento) {
+            alert('Agendamento não encontrado!');
+            return;
+          }
+          // Remove do nó agendamentos
+          return database.ref('agendamentos/' + id).remove()
+            .then(() => {
+              // Adiciona ao nó agendamentosatendidos
+              return database.ref('agendamentosatendidos').push(agendamento);
+            });
+        })
+        .then(() => carregarAgendamentos())
+        .catch(err => alert('Erro ao marcar como atendido: ' + err.message));
+    }
+
+    // Delegação de eventos para os botões dentro da lista
+    document.getElementById('lista-agendamentos').addEventListener('click', e => {
+      const id = e.target.getAttribute('data-id');
+      if (!id) return;
+
+      if (e.target.classList.contains('editar')) {
+        editarAgendamento(id);
+      } else if (e.target.classList.contains('excluir')) {
+        excluirAgendamento(id);
+      } else if (e.target.classList.contains('atendido')) {
+        marcarAtendido(id);
+      }
+    });
+
+    // Chama o carregamento inicial
+    carregarAgendamentos();
   </script>
 </body>
 </html>
