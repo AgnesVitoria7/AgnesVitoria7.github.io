@@ -144,7 +144,7 @@
                   month: 'long',
                   day: 'numeric'
                 })
-              });
+              );
 
           const tituloData = document.createElement('h2');
           tituloData.textContent = textoData;
@@ -168,11 +168,13 @@
           });
 
           container.appendChild(lista);
+        });
 
-      catch (error) {
+      } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
         container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar dados.</p>';
       }
+    }
 
     carregarAgendamentos();
   </script>
