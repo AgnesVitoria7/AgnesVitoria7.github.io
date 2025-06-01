@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lista de Agendamentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agendamentos</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -13,7 +13,6 @@
       margin: 0;
       padding: 0;
     }
-
     main {
       max-width: 700px;
       margin: 2rem auto;
@@ -22,26 +21,24 @@
       border-radius: 12px;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
-
     h1 {
       text-align: center;
       color: #d15b91;
+      margin-bottom: 2rem;
+      font-size: 2rem;
     }
-
     h2 {
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       margin-top: 2rem;
       color: #d15b91;
       border-bottom: 1px solid #f8cce7;
       padding-bottom: 0.3rem;
       text-transform: capitalize;
     }
-
     ul {
       list-style: none;
       padding: 0;
     }
-
     li {
       background: #f8cce7;
       margin: 1rem 0;
@@ -50,14 +47,12 @@
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
       position: relative;
     }
-
     .botoes {
       margin-top: 0.75rem;
       display: flex;
       gap: 0.5rem;
       flex-wrap: wrap;
     }
-
     .botao {
       background-color: #e26ca4;
       color: white;
@@ -69,30 +64,35 @@
       transition: background 0.3s;
       user-select: none;
     }
-
     .botao:hover:not(:disabled) {
       background-color: #d15b91;
     }
-
     .botao:disabled {
       background-color: #f4b9ce;
       cursor: not-allowed;
     }
-
-    .voltar {
-      display: block;
-      text-align: center;
-      margin-top: 1.5rem;
-      text-decoration: none;
-      color: white;
+    .acoes-finais {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .link-voltar, .botao-agendados {
       background-color: #e26ca4;
+      color: white;
+      border: none;
       padding: 0.75rem 1.5rem;
       border-radius: 8px;
-      transition: background 0.3s;
+      cursor: pointer;
+      font-size: 1rem;
+      text-decoration: none;
+      text-align: center;
       user-select: none;
+      transition: background 0.3s;
+      display: inline-block;
     }
-
-    .voltar:hover {
+    .link-voltar:hover, .botao-agendados:hover {
       background-color: #d15b91;
     }
   </style>
@@ -101,179 +101,160 @@
   <main>
     <h1>Agendamentos</h1>
     <ul id="lista-agendamentos"></ul>
-    <a href="index.html" class="voltar">Voltar ao Agendamento</a>
-    <a href="agendamentosatendidos.html" class="voltar" style="margin-top: 0.5rem; background-color: #d15b91;">
-      Agendamentos Atendidos
-    </a>
+    <div class="acoes-finais">
+      <a href="agendamentosatendidos.html" class="botao-agendados">Agendamentos Atendidos</a>
+      <a href="index.html" class="link-voltar">Voltar</a>
+    </div>
   </main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <!-- Firebase Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+  <script>
+    // Configuração do Firebase (substitua pelos seus dados)
     const firebaseConfig = {
-      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
-      authDomain: "espaco-bela-flor.firebaseapp.com",
-      projectId: "espaco-bela-flor",
-      storageBucket: "espaco-bela-flor.appspot.com",
-      messagingSenderId: "1073820568560",
-      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_AUTH_DOMAIN",
+      databaseURL: "SUA_DATABASE_URL",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_STORAGE_BUCKET",
+      messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+      appId: "SEU_APP_ID"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const lista = document.getElementById("lista-agendamentos");
-
-    // Função para capitalizar a primeira letra
     function capitalizeFirstLetter(string) {
       return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    // Função para carregar agendamentos do Firebase
-    async function carregarAgendamentos() {
-      lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Carregando agendamentos...</p>";
-      try {
-        const snapshot = await getDocs(collection(db, "agendamentos"));
-        const agendamentos = [];
-        snapshot.forEach(doc => {
-          agendamentos.push({ id: doc.id, ...doc.data() });
-        });
-
-        if (agendamentos.length === 0) {
-          lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Nenhum agendamento encontrado.</p>";
-          return;
+    function carregarAgendamentosFirebase() {
+      return db.ref('agendamentos').get().then(snapshot => {
+        if (snapshot.exists()) {
+          return snapshot.val();
+        } else {
+          return {};
         }
+      });
+    }
 
-        // Agrupa por data
-        const agendamentosPorData = {};
-        agendamentos.forEach(ag => {
-          if (!agendamentosPorData[ag.data]) {
-            agendamentosPorData[ag.data] = [];
-          }
-          agendamentosPorData[ag.data].push(ag);
+    function montarLista(agendamentosObj) {
+      const lista = document.getElementById('lista-agendamentos');
+      lista.innerHTML = '';
+
+      // Transformar objeto em array e agrupar por data
+      // agendamentosObj: { id1: {nome, data, hora, servico, contato}, id2: {...} }
+      const agendamentos = Object.entries(agendamentosObj).map(([key, val]) => ({ id: key, ...val }));
+
+      if (agendamentos.length === 0) {
+        lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Nenhum agendamento encontrado.</p>";
+        return;
+      }
+
+      // Agrupar por data
+      const agendamentosPorData = {};
+      agendamentos.forEach(ag => {
+        if (!agendamentosPorData[ag.data]) {
+          agendamentosPorData[ag.data] = [];
+        }
+        agendamentosPorData[ag.data].push(ag);
+      });
+
+      // Ordenar datas do mais recente para o mais antigo
+      const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
+
+      datasOrdenadas.forEach(data => {
+        const tituloData = document.createElement('h2');
+        const [ano, mes, dia] = data.split('-');
+        const dataFormatada = new Date(ano, mes - 1, dia);
+
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        let dataTexto = dataFormatada.toLocaleDateString("pt-BR", options);
+        dataTexto = capitalizeFirstLetter(dataTexto);
+
+        tituloData.textContent = dataTexto;
+        lista.appendChild(tituloData);
+
+        // Ordenar agendamentos por hora
+        const agsOrdenados = agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
+
+        agsOrdenados.forEach(item => {
+          const li = document.createElement('li');
+
+          li.innerHTML = `
+            <strong>Nome:</strong> ${item.nome}<br>
+            <strong>Hora:</strong> ${item.hora}<br>
+            <strong>Serviço:</strong> ${item.servico}<br>
+            <strong>Contato:</strong> ${item.contato}
+            <div class="botoes">
+              <button class="botao editar" data-id="${item.id}" title="Editar">✏️ Editar</button>
+              <button class="botao excluir" data-id="${item.id}" title="Excluir">🗑️ Excluir</button>
+              <button class="botao atendido" data-id="${item.id}" title="Marcar como atendido">✔️ Atendido</button>
+            </div>
+          `;
+
+          lista.appendChild(li);
         });
+      });
+    }
 
-        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
-        lista.innerHTML = ""; // limpa lista
-
-        datasOrdenadas.forEach(data => {
-          const tituloData = document.createElement("h2");
-          const [ano, mes, dia] = data.split("-");
-          const dataFormatada = new Date(ano, mes - 1, dia);
-
-          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-          let dataTexto = dataFormatada.toLocaleDateString("pt-BR", options);
-          dataTexto = capitalizeFirstLetter(dataTexto);
-
-          tituloData.textContent = dataTexto;
-          lista.appendChild(tituloData);
-
-          const agendamentosOrdenados = agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
-
-          agendamentosOrdenados.forEach(item => {
-            const li = document.createElement("li");
-            li.innerHTML = `
-              <strong>Nome:</strong> ${item.nome}<br>
-              <strong>Hora:</strong> ${item.hora}<br>
-              <strong>Serviço:</strong> ${item.servico}<br>
-              <strong>Contato:</strong> ${item.contato}
-              <div class="botoes">
-                <button class="botao editar" data-id="${item.id}" title="Editar">✏️ Editar</button>
-                <button class="botao excluir" data-id="${item.id}" title="Excluir">🗑️ Excluir</button>
-                <button class="botao atendido" data-id="${item.id}" title="Marcar como atendido">✔️ Atendido</button>
-              </div>
-            `;
-            lista.appendChild(li);
-          });
-        });
-
-      } catch (error) {
-        console.error("Erro ao carregar agendamentos:", error);
-        lista.innerHTML = "<p style='text-align:center; color:#d15b91; font-weight:bold;'>Erro ao carregar agendamentos.</p>";
+    function excluirAgendamento(id) {
+      if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+        db.ref('agendamentos/' + id).remove().then(() => {
+          alert('Agendamento excluído.');
+          location.reload();
+        }).catch(err => alert('Erro ao excluir: ' + err));
       }
     }
 
-    // Excluir agendamento pelo ID
-    async function excluirAgendamento(id) {
-      if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
-      try {
-        await deleteDoc(doc(db, "agendamentos", id));
-        carregarAgendamentos();
-      } catch (error) {
-        alert("Erro ao excluir agendamento.");
-        console.error(error);
-      }
-    }
-
-    // Editar: salvar no localStorage e ir para index.html para editar
-    async function editarAgendamento(id) {
-      try {
-        const docRef = doc(db, "agendamentos", id);
-        const docSnap = await getDocs(collection(db, "agendamentos"));
-        const snapshot = await getDocs(collection(db, "agendamentos"));
-        // Como getDoc para um só doc não foi importado, vamos usar getDoc
-        import { getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-        const docSnapSingle = await getDoc(docRef);
-
-        if (docSnapSingle.exists()) {
-          const agendamento = docSnapSingle.data();
+    function editarAgendamento(id) {
+      db.ref('agendamentos/' + id).get().then(snapshot => {
+        if (snapshot.exists()) {
+          const agendamento = snapshot.val();
           localStorage.setItem("editarAgendamento", JSON.stringify({ ...agendamento, id }));
           window.location.href = "index.html";
-        } else {
-          alert("Agendamento não encontrado para edição.");
         }
-      } catch (error) {
-        alert("Erro ao carregar agendamento para edição.");
-        console.error(error);
-      }
+      });
     }
 
-    // Marcar como atendido: mover do 'agendamentos' para 'agendamentosatendidos'
-    async function marcarAtendido(id) {
-      try {
-        // Pega dados do agendamento
-        const docRef = doc(db, "agendamentos", id);
-        import { getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-        const docSnap = await getDoc(docRef);
+    function marcarAtendido(id) {
+      // Pega os dados do agendamento
+      db.ref('agendamentos/' + id).get().then(snapshot => {
+        if (snapshot.exists()) {
+          const agendamento = snapshot.val();
 
-        if (!docSnap.exists()) {
-          alert("Agendamento não encontrado.");
-          return;
+          // Salva em "agendamentosatendidos"
+          const novosAtendidosRef = db.ref('agendamentosatendidos').push();
+          novosAtendidosRef.set(agendamento).then(() => {
+            // Remove da lista de agendamentos
+            db.ref('agendamentos/' + id).remove().then(() => {
+              alert('Agendamento marcado como atendido.');
+              window.location.href = "agendamentosatendidos.html";
+            });
+          });
         }
-
-        const agendamento = docSnap.data();
-
-        // Adiciona em agendamentosatendidos
-        await addDoc(collection(db, "agendamentosatendidos"), agendamento);
-
-        // Remove do agendamentos
-        await deleteDoc(doc(db, "agendamentos", id));
-
-        // Redireciona para lista de atendidos
-        window.location.href = "agendamentosatendidos.html";
-      } catch (error) {
-        alert("Erro ao marcar como atendido.");
-        console.error(error);
-      }
+      });
     }
 
-    // Eventos dos botões
-    document.addEventListener("click", e => {
-      const id = e.target.getAttribute("data-id");
+    document.addEventListener('click', e => {
+      const id = e.target.getAttribute('data-id');
       if (!id) return;
 
-      if (e.target.classList.contains("excluir")) {
+      if (e.target.classList.contains('excluir')) {
         excluirAgendamento(id);
-      } else if (e.target.classList.contains("editar")) {
+      } else if (e.target.classList.contains('editar')) {
         editarAgendamento(id);
-      } else if (e.target.classList.contains("atendido")) {
+      } else if (e.target.classList.contains('atendido')) {
         marcarAtendido(id);
       }
     });
 
-    // Carrega agendamentos na inicialização
-    carregarAgendamentos();
+    // Carrega agendamentos ao abrir a página
+    carregarAgendamentosFirebase().then(agendamentosObj => montarLista(agendamentosObj));
   </script>
 </body>
 </html>
