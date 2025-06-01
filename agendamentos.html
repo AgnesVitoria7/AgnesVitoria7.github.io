@@ -53,9 +53,6 @@
       font-weight: 600;
       color: #8e2c63;
     }
-    .agendamento-info span:last-child {
-      flex: 2 1 200px;
-    }
     .botoes {
       display: flex;
       justify-content: center;
@@ -92,39 +89,21 @@
   </div>
 
   <script type="module">
-    const container = document.getElementById('container-agendamentos');
-container.innerHTML = ''; // Limpa o container
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-// Teste simples, só pra ver se aparece
-const h2 = document.createElement('h2');
-h2.textContent = "Teste de título grande para a data: 01 de Junho de 2025";
-container.appendChild(h2);
-
-const ul = document.createElement('ul');
-ul.className = 'lista-agendamentos';
-
-for (let i = 1; i <= 3; i++) {
-  const li = document.createElement('li');
-  li.className = 'agendamento-item';
-  li.innerHTML = `
-    <div class="agendamento-info">
-      <span><strong>Nome:</strong> Cliente ${i}</span>
-      <span><strong>Hora:</strong> 0${i}:00</span>
-      <span><strong>Serviço:</strong> Manicure</span>
-      <span><strong>Contato:</strong> (00) 0000-000${i}</span>
-    </div>
-  `;
-  ul.appendChild(li);
-}
-
-container.appendChild(ul);
-
+    const firebaseConfig = {
+      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
+      authDomain: "espaco-bela-flor.firebaseapp.com",
+      projectId: "espaco-bela-flor",
+      storageBucket: "espaco-bela-flor.appspot.com",
+      messagingSenderId: "1073820568560",
+      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Função para capitalizar a primeira letra (útil para datas formatadas)
     function capitalizeFirstLetter(str) {
       if (!str) return "";
       return str.charAt(0).toUpperCase() + str.slice(1);
@@ -132,7 +111,7 @@ container.appendChild(ul);
 
     async function carregarAgendamentos() {
       const container = document.getElementById('container-agendamentos');
-      container.innerHTML = ''; // Limpa o conteúdo para carregar novo
+      container.innerHTML = '';
 
       try {
         const snapshot = await getDocs(collection(db, "agendamentos"));
@@ -142,27 +121,19 @@ container.appendChild(ul);
           return;
         }
 
-        // Agrupa por data
         const agendamentosPorData = {};
         snapshot.forEach(doc => {
-          const agendamento = doc.data();
-          const data = agendamento.data || "Sem data";
+          const ag = doc.data();
+          const data = ag.data || "Sem data";
           if (!agendamentosPorData[data]) {
             agendamentosPorData[data] = [];
           }
-          agendamentosPorData[data].push(agendamento);
+          agendamentosPorData[data].push(ag);
         });
 
-        // Ordenar as datas (menor para maior)
-        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => {
-          const d1 = new Date(a);
-          const d2 = new Date(b);
-          return d1 - d2;
-        });
+        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(a) - new Date(b));
 
-        // Para cada data, criar título e lista
         datasOrdenadas.forEach(data => {
-          // Formata data para mostrar tipo: "Segunda-feira, 1 de Janeiro de 2025"
           let dataFormatada = new Date(data);
           let textoData = isNaN(dataFormatada)
             ? data
@@ -175,32 +146,26 @@ container.appendChild(ul);
                 })
               );
 
-          // Cria título da data
           const tituloData = document.createElement('h2');
           tituloData.textContent = textoData;
           container.appendChild(tituloData);
 
-          // Cria lista de agendamentos
           const lista = document.createElement('ul');
           lista.className = 'lista-agendamentos';
 
-          // Ordena agendamentos pela hora
-          agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora))
-            .forEach(ag => {
-              const item = document.createElement('li');
-              item.className = 'agendamento-item';
-
-              item.innerHTML = `
-                <div class="agendamento-info">
-                  <span><strong>Nome:</strong> ${ag.nome}</span>
-                  <span><strong>Hora:</strong> ${ag.hora}</span>
-                  <span><strong>Serviço:</strong> ${ag.servico}</span>
-                  <span><strong>Contato:</strong> ${ag.contato}</span>
-                </div>
-              `;
-
-              lista.appendChild(item);
-            });
+          agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora)).forEach(ag => {
+            const item = document.createElement('li');
+            item.className = 'agendamento-item';
+            item.innerHTML = `
+              <div class="agendamento-info">
+                <span><strong>Nome:</strong> ${ag.nome}</span>
+                <span><strong>Hora:</strong> ${ag.hora}</span>
+                <span><strong>Serviço:</strong> ${ag.servico}</span>
+                <span><strong>Contato:</strong> ${ag.contato}</span>
+              </div>
+            `;
+            lista.appendChild(item);
+          });
 
           container.appendChild(lista);
         });
