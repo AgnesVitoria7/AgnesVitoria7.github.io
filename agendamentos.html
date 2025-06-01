@@ -124,19 +124,21 @@
         const agendamentosPorData = {};
         snapshot.forEach(doc => {
           const ag = doc.data();
-          const data = ag.data || "Sem data";
-          if (!agendamentosPorData[data]) {
-            agendamentosPorData[data] = [];
+          const dataAgendamento = ag.data || "Sem data";
+
+          if (!agendamentosPorData[dataAgendamento]) {
+            agendamentosPorData[dataAgendamento] = [];
           }
-          agendamentosPorData[data].push(ag);
+
+          agendamentosPorData[dataAgendamento].push(ag);
         });
 
         const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(a) - new Date(b));
 
-        datasOrdenadas.forEach(data => {
-          let dataFormatada = new Date(data);
+        datasOrdenadas.forEach(dataAgendamento => {
+          let dataFormatada = new Date(dataAgendamento);
           let textoData = isNaN(dataFormatada)
-            ? data
+            ? dataAgendamento
             : capitalizeFirstLetter(
                 dataFormatada.toLocaleDateString('pt-BR', {
                   weekday: 'long',
@@ -153,19 +155,21 @@
           const lista = document.createElement('ul');
           lista.className = 'lista-agendamentos';
 
-          agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora)).forEach(ag => {
-            const item = document.createElement('li');
-            item.className = 'agendamento-item';
-            item.innerHTML = `
-              <div class="agendamento-info">
-                <span><strong>Nome:</strong> ${ag.nome}</span>
-                <span><strong>Hora:</strong> ${ag.hora}</span>
-                <span><strong>Serviço:</strong> ${ag.servico}</span>
-                <span><strong>Contato:</strong> ${ag.contato}</span>
-              </div>
-            `;
-            lista.appendChild(item);
-          });
+          agendamentosPorData[dataAgendamento]
+            .sort((a, b) => a.hora.localeCompare(b.hora))
+            .forEach(ag => {
+              const item = document.createElement('li');
+              item.className = 'agendamento-item';
+              item.innerHTML = `
+                <div class="agendamento-info">
+                  <span><strong>Nome:</strong> ${ag.nome}</span>
+                  <span><strong>Hora:</strong> ${ag.hora}</span>
+                  <span><strong>Serviço:</strong> ${ag.servico}</span>
+                  <span><strong>Contato:</strong> ${ag.contato}</span>
+                </div>
+              `;
+              lista.appendChild(item);
+            });
 
           container.appendChild(lista);
         });
