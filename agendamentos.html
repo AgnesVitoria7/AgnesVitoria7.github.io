@@ -3,57 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lista de Agendamentos</title>
+  <title>Agendamentos - Espaço Bela Flor</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: 'Arial', sans-serif;
-      background-color: #fff0f5;
+      background-image: url('/Imagens/rosinha.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      color: #444;
       margin: 0;
       padding: 2rem;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    main {
+      max-width: 600px;
+      width: 100%;
+      padding: 2.5rem 2rem 3rem;
+      background: #ffffffdd;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
+      text-align: center;
     }
     h1 {
-      text-align: center;
+      margin: 0 0 1rem;
+      font-weight: 700;
+      font-size: 2.25rem;
       color: #d15b91;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      letter-spacing: 1.2px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 2rem;
-      background: #fff;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
+      margin-top: 1.5rem;
+    }
+    thead tr {
+      background-color: #f8d7e1;
     }
     th, td {
-      padding: 0.8rem 1rem;
+      padding: 0.75rem 1rem;
       text-align: left;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #e6c0d7;
+      color: #6e4668;
     }
     th {
-      background-color: #fce4ec;
-      color: #8e2c63;
+      font-weight: 700;
+      color: #d15b91;
     }
-    tr:hover {
-      background-color: #f9e1ec;
+    tbody tr:hover {
+      background-color: #fce4ec;
+    }
+    .mensagem {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #f8d7e1;
+      color: #6e4668;
+      border: 1px solid #dba2c3;
+      border-radius: 8px;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <h1>Agendamentos</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Data</th>
-        <th>Hora</th>
-        <th>Serviço</th>
-        <th>Contato</th>
-      </tr>
-    </thead>
-    <tbody id="tabela-agendamentos">
-      <tr><td colspan="5">Carregando...</td></tr>
-    </tbody>
-  </table>
+  <main>
+    <h1>Agendamentos</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Data</th>
+          <th>Hora</th>
+          <th>Serviço</th>
+          <th>Contato</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-agendamentos">
+        <tr><td colspan="5">Carregando...</td></tr>
+      </tbody>
+    </table>
+    <div id="mensagem" class="mensagem" style="display:none;"></div>
+  </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -71,22 +107,24 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const tabela = document.getElementById("tabela-agendamentos");
+    const mensagem = document.getElementById("mensagem");
+
     async function carregarAgendamentos() {
-      const tabela = document.getElementById("tabela-agendamentos");
       tabela.innerHTML = "";
+      mensagem.style.display = "none";
 
       try {
         const querySnapshot = await getDocs(collection(db, "agendamentos"));
 
         if (querySnapshot.empty) {
-          tabela.innerHTML = "<tr><td colspan='5'>Nenhum agendamento encontrado.</td></tr>";
+          tabela.innerHTML = `<tr><td colspan="5">Nenhum agendamento encontrado.</td></tr>`;
           return;
         }
 
         querySnapshot.forEach(doc => {
           const agendamento = doc.data();
           const tr = document.createElement("tr");
-
           tr.innerHTML = `
             <td>${agendamento.nome}</td>
             <td>${agendamento.data}</td>
@@ -96,13 +134,16 @@
           `;
           tabela.appendChild(tr);
         });
+
       } catch (error) {
         console.error("Erro ao carregar agendamentos:", error);
-        tabela.innerHTML = "<tr><td colspan='5'>Erro ao carregar dados.</td></tr>";
+        mensagem.textContent = "Erro ao carregar os agendamentos. Tente novamente mais tarde.";
+        mensagem.style.display = "block";
+        tabela.innerHTML = "";
       }
     }
 
-    carregarAgendamentos();
+    window.onload = carregarAgendamentos;
   </script>
 </body>
 </html>
