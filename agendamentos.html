@@ -26,12 +26,12 @@
       padding-bottom: 0.3rem;
       font-size: 1.4rem;
     }
-    .lista-agendamentos {
+    ul.lista-agendamentos {
       list-style: none;
       padding: 0;
       margin: 0 0 2rem 0;
     }
-    .agendamento-item {
+    li.agendamento-item {
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 5px 15px rgba(209, 91, 145, 0.15);
@@ -39,7 +39,7 @@
       margin-bottom: 1rem;
       transition: background-color 0.3s;
     }
-    .agendamento-item:hover {
+    li.agendamento-item:hover {
       background-color: #f9e1ec;
     }
     .agendamento-info {
@@ -60,7 +60,7 @@
       display: flex;
       justify-content: center;
       gap: 1rem;
-      margin-top: 1rem;
+      margin-top: 2rem;
     }
     .botao-link {
       background-color: #e26ca4;
@@ -107,13 +107,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Função para capitalizar a primeira letra (útil para datas formatadas)
     function capitalizeFirstLetter(str) {
+      if (!str) return "";
       return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     async function carregarAgendamentos() {
       const container = document.getElementById('container-agendamentos');
-      container.innerHTML = '';
+      container.innerHTML = ''; // Limpa o conteúdo para carregar novo
 
       try {
         const snapshot = await getDocs(collection(db, "agendamentos"));
@@ -123,54 +125,71 @@
           return;
         }
 
-        // Agrupar agendamentos por data
+        // Agrupa por data
         const agendamentosPorData = {};
         snapshot.forEach(doc => {
           const agendamento = doc.data();
           const data = agendamento.data || "Sem data";
-          if (!agendamentosPorData[data]) agendamentosPorData[data] = [];
+          if (!agendamentosPorData[data]) {
+            agendamentosPorData[data] = [];
+          }
           agendamentosPorData[data].push(agendamento);
         });
 
-        // Ordenar datas
-        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a,b) => new Date(a) - new Date(b));
+        // Ordenar as datas (menor para maior)
+        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => {
+          const d1 = new Date(a);
+          const d2 = new Date(b);
+          return d1 - d2;
+        });
 
+        // Para cada data, criar título e lista
         datasOrdenadas.forEach(data => {
-          // Formatar data para título
-          const dataFormatada = new Date(data);
-          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-          const dataTexto = isNaN(dataFormatada) ? data : capitalizeFirstLetter(dataFormatada.toLocaleDateString('pt-BR', options));
+          // Formata data para mostrar tipo: "Segunda-feira, 1 de Janeiro de 2025"
+          let dataFormatada = new Date(data);
+          let textoData = isNaN(dataFormatada)
+            ? data
+            : capitalizeFirstLetter(
+                dataFormatada.toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })
+              );
 
-          // Título da data
+          // Cria título da data
           const tituloData = document.createElement('h2');
-          tituloData.textContent = dataTexto;
+          tituloData.textContent = textoData;
           container.appendChild(tituloData);
 
-          // Lista para os agendamentos desse dia
+          // Cria lista de agendamentos
           const lista = document.createElement('ul');
           lista.className = 'lista-agendamentos';
 
-          // Ordenar agendamentos pela hora
-          agendamentosPorData[data].sort((a,b) => a.hora.localeCompare(b.hora)).forEach(ag => {
-            const item = document.createElement('li');
-            item.className = 'agendamento-item';
+          // Ordena agendamentos pela hora
+          agendamentosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora))
+            .forEach(ag => {
+              const item = document.createElement('li');
+              item.className = 'agendamento-item';
 
-            item.innerHTML = `
-              <div class="agendamento-info">
-                <span><strong>Nome:</strong> ${ag.nome}</span>
-                <span><strong>Hora:</strong> ${ag.hora}</span>
-                <span><strong>Serviço:</strong> ${ag.servico}</span>
-                <span><strong>Contato:</strong> ${ag.contato}</span>
-              </div>
-            `;
-            lista.appendChild(item);
-          });
+              item.innerHTML = `
+                <div class="agendamento-info">
+                  <span><strong>Nome:</strong> ${ag.nome}</span>
+                  <span><strong>Hora:</strong> ${ag.hora}</span>
+                  <span><strong>Serviço:</strong> ${ag.servico}</span>
+                  <span><strong>Contato:</strong> ${ag.contato}</span>
+                </div>
+              `;
+
+              lista.appendChild(item);
+            });
 
           container.appendChild(lista);
         });
 
       } catch (error) {
-        console.error("Erro ao carregar agendamentos:", error);
+        console.error('Erro ao carregar agendamentos:', error);
         container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar dados.</p>';
       }
     }
