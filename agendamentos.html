@@ -10,6 +10,7 @@
       background-color: #fff0f5;
       margin: 0;
       padding: 2rem;
+      color: #6a305a;
     }
     h1 {
       text-align: center;
@@ -19,31 +20,41 @@
     h2 {
       color: #d15b91;
       margin-top: 2rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 1rem;
       text-transform: capitalize;
-      border-bottom: 1px solid #f8cce7;
-      padding-bottom: 0.2rem;
+      border-bottom: 2px solid #f8cce7;
+      padding-bottom: 0.3rem;
+      font-size: 1.4rem;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .lista-agendamentos {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 2rem 0;
+    }
+    .agendamento-item {
       background: #fff;
       border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
-      margin-bottom: 2rem;
+      box-shadow: 0 5px 15px rgba(209, 91, 145, 0.15);
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      transition: background-color 0.3s;
     }
-    th, td {
-      padding: 0.8rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid #eee;
+    .agendamento-item:hover {
+      background-color: #f9e1ec;
     }
-    th {
-      background-color: #fce4ec;
+    .agendamento-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 1rem;
+    }
+    .agendamento-info span {
+      flex: 1 1 150px;
+      font-weight: 600;
       color: #8e2c63;
     }
-    tr:hover {
-      background-color: #f9e1ec;
+    .agendamento-info span:last-child {
+      flex: 2 1 200px;
     }
     .botoes {
       display: flex;
@@ -96,7 +107,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Função para capitalizar primeira letra
     function capitalizeFirstLetter(str) {
       return str.charAt(0).toUpperCase() + str.slice(1);
     }
@@ -125,40 +135,38 @@
         // Ordenar datas
         const datasOrdenadas = Object.keys(agendamentosPorData).sort((a,b) => new Date(a) - new Date(b));
 
-        // Para cada data, criar um título e tabela com agendamentos
         datasOrdenadas.forEach(data => {
-          // Título da data (formatado)
+          // Formatar data para título
           const dataFormatada = new Date(data);
           const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
           const dataTexto = isNaN(dataFormatada) ? data : capitalizeFirstLetter(dataFormatada.toLocaleDateString('pt-BR', options));
 
-          const titulo = document.createElement('h2');
-          titulo.textContent = dataTexto;
-          container.appendChild(titulo);
+          // Título da data
+          const tituloData = document.createElement('h2');
+          tituloData.textContent = dataTexto;
+          container.appendChild(tituloData);
 
-          // Tabela
-          const tabela = document.createElement('table');
-          tabela.innerHTML = `
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Hora</th>
-                <th>Serviço</th>
-                <th>Contato</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${agendamentosPorData[data].sort((a,b) => a.hora.localeCompare(b.hora)).map(ag => `
-                <tr>
-                  <td>${ag.nome}</td>
-                  <td>${ag.hora}</td>
-                  <td>${ag.servico}</td>
-                  <td>${ag.contato}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          `;
-          container.appendChild(tabela);
+          // Lista para os agendamentos desse dia
+          const lista = document.createElement('ul');
+          lista.className = 'lista-agendamentos';
+
+          // Ordenar agendamentos pela hora
+          agendamentosPorData[data].sort((a,b) => a.hora.localeCompare(b.hora)).forEach(ag => {
+            const item = document.createElement('li');
+            item.className = 'agendamento-item';
+
+            item.innerHTML = `
+              <div class="agendamento-info">
+                <span><strong>Nome:</strong> ${ag.nome}</span>
+                <span><strong>Hora:</strong> ${ag.hora}</span>
+                <span><strong>Serviço:</strong> ${ag.servico}</span>
+                <span><strong>Contato:</strong> ${ag.contato}</span>
+              </div>
+            `;
+            lista.appendChild(item);
+          });
+
+          container.appendChild(lista);
         });
 
       } catch (error) {
