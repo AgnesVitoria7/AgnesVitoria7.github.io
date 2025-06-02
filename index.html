@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agendamento de Manicure</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: 'Arial', sans-serif;
       background-image: url('/Imagens/rosinha.png');
@@ -16,12 +14,11 @@
       background-repeat: no-repeat;
       color: #444;
       margin: 0;
-      padding: 0;
+      padding: 2rem;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 2rem;
     }
     main {
       max-width: 480px;
@@ -131,8 +128,8 @@
 
       <div>
         <label for="hora">Hora:</label>
-        <select id="hora" name="hora" required>
-          <!-- Horários serão adicionados via JS -->
+        <select id="hora" name="hora" required disabled>
+          <option value="">Selecione uma data primeiro</option>
         </select>
       </div>
 
@@ -163,12 +160,11 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-    // ⚠️ ATENÇÃO: embora a apiKey não seja secreta, proteja seu Firestore com regras!
     const firebaseConfig = {
       apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
       authDomain: "espaco-bela-flor.firebaseapp.com",
       projectId: "espaco-bela-flor",
-      storageBucket: "espaco-bela-flor.appspot.com", // corrigido
+      storageBucket: "espaco-bela-flor.appspot.com",
       messagingSenderId: "1073820568560",
       appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
     };
@@ -183,8 +179,7 @@
     function gerarHorariosFixos() {
       const horarios = [];
       for (let hora = 7; hora <= 18; hora++) {
-        const horaFormatada = hora.toString().padStart(2, '0') + ":00";
-        horarios.push(horaFormatada);
+        horarios.push(hora.toString().padStart(2, '0') + ":00");
       }
       return horarios;
     }
@@ -214,7 +209,7 @@
           if (ocupado) {
             option.disabled = true;
             option.textContent += " (indisponível)";
-            option.style.color = "#aaa"; // estilo visual para desativado
+            option.style.color = "#aaa";
           }
         }
 
@@ -260,6 +255,7 @@
 
         document.getElementById("mensagem-sucesso").classList.remove("oculto");
         form.reset();
+        selectHora.disabled = true;
         carregarHorarios(data);
       } catch (error) {
         console.error("Erro ao salvar agendamento: ", error);
@@ -268,26 +264,25 @@
     });
 
     inputData.addEventListener("change", (e) => {
+      selectHora.disabled = false;
       carregarHorarios(e.target.value);
     });
 
     window.onload = () => {
-      carregarHorarios();
+      inputData.value = "";
+      selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
+      selectHora.disabled = true;
     };
 
-    function verificarLogin() {
-      alert("Funcionalidade de acesso ainda não implementada.");
-    }
     document.getElementById("btn-acessar").addEventListener("click", function (event) {
-  event.preventDefault(); // Impede navegação imediata
-  const senha = prompt("Digite a senha de acesso:");
-  if (senha === "1425") {
-    window.location.href = "agendamentos.html";
-  } else {
-    alert("❌ Senha incorreta. Acesso negado.");
-  }
-});
-
+      event.preventDefault();
+      const senha = prompt("Digite a senha de acesso:");
+      if (senha === "1425") {
+        window.location.href = "agendamentos.html";
+      } else {
+        alert("❌ Senha incorreta. Acesso negado.");
+      }
+    });
   </script>
 </body>
 </html>
