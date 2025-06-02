@@ -33,12 +33,9 @@
       box-shadow: 0 4px 10px rgba(209, 91, 145, 0.15);
       padding: 1rem;
       margin: 1rem auto;
+      width: 100%;
       max-width: 500px;
-      transition: transform 0.2s ease;
-    }
-
-    .card:hover {
-      transform: scale(1.02);
+      box-sizing: border-box;
     }
 
     .card p {
@@ -95,8 +92,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function formatarDataParaExibicao(dataISO) {
-      const [ano, mes, dia] = dataISO.split("-");
+    function formatarDataParaDDMMYYYY(dataStr) {
+      // Caso a data venha como "2025-06-01"
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
+        const [ano, mes, dia] = dataStr.split("-");
+        return `${dia}/${mes}/${ano}`;
+      }
+
+      // Caso a data venha como timestamp ou objeto Date
+      const data = new Date(dataStr);
+      const dia = String(data.getDate()).padStart(2, '0');
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      const ano = data.getFullYear();
       return `${dia}/${mes}/${ano}`;
     }
 
@@ -112,7 +119,6 @@
           const dados = doc.data();
           agendamentos.push({
             ...dados,
-            dataISO: dados.data,
             dataObj: new Date(dados.data)
           });
         });
@@ -126,7 +132,7 @@
 
         const agendamentosPorData = {};
         agendamentos.forEach(agendamento => {
-          const dataFormatada = formatarDataParaExibicao(agendamento.dataISO);
+          const dataFormatada = formatarDataParaDDMMYYYY(agendamento.data);
           if (!agendamentosPorData[dataFormatada]) {
             agendamentosPorData[dataFormatada] = [];
           }
