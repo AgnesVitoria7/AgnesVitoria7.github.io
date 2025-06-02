@@ -1,150 +1,200 @@
-<!-- ... (todo o seu HTML acima permanece igual até a função carregarHorarios) -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agendamento | Espaço Bela Flor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Agendamento</h1>
+    <form id="form-agendamento">
+      <label for="nome">Nome:</label>
+      <input type="text" id="nome" required />
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+      <label for="data">Data:</label>
+      <input type="date" id="data" required />
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
-    authDomain: "espaco-bela-flor.firebaseapp.com",
-    projectId: "espaco-bela-flor",
-    storageBucket: "espaco-bela-flor.appspot.com",
-    messagingSenderId: "1073820568560",
-    appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
-  };
+      <label for="hora">Horário:</label>
+      <select id="hora" required>
+        <option value="">Selecione uma data primeiro</option>
+      </select>
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+      <label for="servico">Serviço:</label>
+      <select id="servico" required>
+        <option value="">Selecione</option>
+        <option value="manicure">Manicure</option>
+        <option value="pedicure">Pedicure</option>
+        <option value="manicure-pedicure">Manicure + Pedicure (2h)</option>
+        <option value="designer">Designer de Sobrancelha</option>
+        <option value="henna">Sobrancelha com Henna</option>
+      </select>
 
-  const form = document.getElementById("form-agendamento");
-  const selectHora = document.getElementById("hora");
-  const inputData = document.getElementById("data");
+      <label for="contato">Contato (WhatsApp):</label>
+      <input type="tel" id="contato" required placeholder="(99) 99999-9999" />
 
-  function gerarHorariosFixos() {
-    const horarios = [];
-    for (let hora = 7; hora <= 18; hora++) {
-      horarios.push(hora.toString().padStart(2, '0') + ":00");
-    }
-    return horarios;
-  }
+      <button type="submit">Agendar</button>
+    </form>
 
-  async function carregarHorarios(dataSelecionada = null) {
-    const horariosFixos = gerarHorariosFixos();
-    selectHora.innerHTML = "<option value=''>Selecione um horário</option>";
+    <p id="mensagem-sucesso" class="oculto">✅ Agendamento realizado com sucesso!</p>
 
-    let agendamentos = [];
-    if (dataSelecionada) {
-      try {
-        const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
-        const querySnapshot = await getDocs(q);
-        agendamentos = querySnapshot.docs.map(doc => doc.data());
-      } catch (error) {
-        console.error("Erro ao buscar agendamentos: ", error);
+    <a href="#" id="btn-acessar">Acessar agendamentos (admin)</a>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      addDoc,
+      Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
+      authDomain: "espaco-bela-flor.firebaseapp.com",
+      projectId: "espaco-bela-flor",
+      storageBucket: "espaco-bela-flor.appspot.com",
+      messagingSenderId: "1073820568560",
+      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById("form-agendamento");
+    const selectHora = document.getElementById("hora");
+    const inputData = document.getElementById("data");
+
+    function gerarHorariosFixos() {
+      const horarios = [];
+      for (let hora = 7; hora <= 18; hora++) {
+        horarios.push(hora.toString().padStart(2, '0') + ":00");
       }
+      return horarios;
     }
 
-    const servicoSelecionado = document.getElementById("servico").value;
+    async function carregarHorarios(dataSelecionada = null) {
+      const horariosFixos = gerarHorariosFixos();
+      selectHora.innerHTML = "<option value=''>Selecione um horário</option>";
 
-    horariosFixos.forEach((hora, i) => {
-      const option = document.createElement("option");
-      option.value = hora;
-      option.textContent = hora;
-
-      const proximaHora = horariosFixos[i + 1];
-
-      const ocupado = agendamentos.some(a => a.hora === hora);
-      const proximoOcupado = agendamentos.some(a => a.hora === proximaHora);
-
-      // Bloqueio do horário e do próximo se for "manicure-pedicure"
-      const indisponivel =
-        ocupado ||
-        (servicoSelecionado === "manicure-pedicure" && proximoOcupado) ||
-        (servicoSelecionado === "manicure-pedicure" && i === horariosFixos.length - 1); // Último horário não tem próximo
-
-      if (indisponivel) {
-        option.disabled = true;
-        option.textContent += " (indisponível)";
-        option.style.color = "#aaa";
+      let agendamentos = [];
+      if (dataSelecionada) {
+        try {
+          const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
+          const querySnapshot = await getDocs(q);
+          agendamentos = querySnapshot.docs.map(doc => doc.data());
+        } catch (error) {
+          console.error("Erro ao buscar agendamentos: ", error);
+        }
       }
 
-      selectHora.appendChild(option);
-    });
-  }
+      const servicoSelecionado = document.getElementById("servico").value;
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+      horariosFixos.forEach((hora, i) => {
+        const option = document.createElement("option");
+        option.value = hora;
+        option.textContent = hora;
 
-    const nome = document.getElementById("nome").value.trim();
-    const data = inputData.value;
-    const hora = selectHora.value;
-    const servico = document.getElementById("servico").value;
-    const contato = document.getElementById("contato").value.trim();
+        const proximaHora = horariosFixos[i + 1];
 
-    if (!data || !hora) {
-      alert("Por favor, selecione uma data e horário disponíveis.");
-      return;
+        const ocupado = agendamentos.some(a => a.hora === hora);
+        const proximoOcupado = agendamentos.some(a => a.hora === proximaHora);
+
+        const indisponivel =
+          ocupado ||
+          (servicoSelecionado === "manicure-pedicure" && (proximoOcupado || !proximaHora));
+
+        if (indisponivel) {
+          option.disabled = true;
+          option.textContent += " (indisponível)";
+          option.style.color = "#aaa";
+        }
+
+        selectHora.appendChild(option);
+      });
     }
 
-    const horariosFixos = gerarHorariosFixos();
-    const horaIndex = horariosFixos.indexOf(hora);
-    const proximaHora = horariosFixos[horaIndex + 1];
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    try {
-      const q = query(collection(db, "agendamentos"), where("data", "==", data));
-      const querySnapshot = await getDocs(q);
-      const agendados = querySnapshot.docs.map(doc => doc.data());
+      const nome = document.getElementById("nome").value.trim();
+      const data = inputData.value;
+      const hora = selectHora.value;
+      const servico = document.getElementById("servico").value;
+      const contato = document.getElementById("contato").value.trim();
 
-      const jaAgendado = agendados.some(a =>
-        a.hora === hora || (servico === "manicure-pedicure" && a.hora === proximaHora)
-      );
-
-      if (jaAgendado) {
-        alert("⚠️ Este horário (ou o seguinte) já está ocupado.");
+      if (!data || !hora) {
+        alert("Por favor, selecione uma data e horário disponíveis.");
         return;
       }
 
-      await addDoc(collection(db, "agendamentos"), {
-        nome,
-        data,
-        hora,
-        servico,
-        contato,
-        criadoEm: Timestamp.now()
-      });
+      const horariosFixos = gerarHorariosFixos();
+      const horaIndex = horariosFixos.indexOf(hora);
+      const proximaHora = horariosFixos[horaIndex + 1];
 
-      document.getElementById("mensagem-sucesso").classList.remove("oculto");
-      form.reset();
+      try {
+        const q = query(collection(db, "agendamentos"), where("data", "==", data));
+        const querySnapshot = await getDocs(q);
+        const agendados = querySnapshot.docs.map(doc => doc.data());
+
+        const jaAgendado = agendados.some(a =>
+          a.hora === hora || (servico === "manicure-pedicure" && a.hora === proximaHora)
+        );
+
+        if (jaAgendado) {
+          alert("⚠️ Este horário (ou o seguinte) já está ocupado.");
+          return;
+        }
+
+        await addDoc(collection(db, "agendamentos"), {
+          nome,
+          data,
+          hora,
+          servico,
+          contato,
+          criadoEm: Timestamp.now()
+        });
+
+        document.getElementById("mensagem-sucesso").classList.remove("oculto");
+        form.reset();
+        selectHora.disabled = true;
+        carregarHorarios(data);
+      } catch (error) {
+        console.error("Erro ao salvar agendamento: ", error);
+        alert("Erro ao salvar agendamento. Tente novamente mais tarde.");
+      }
+    });
+
+    inputData.addEventListener("change", (e) => {
+      selectHora.disabled = false;
+      carregarHorarios(e.target.value);
+    });
+
+    document.getElementById("servico").addEventListener("change", () => {
+      const data = inputData.value;
+      if (data) carregarHorarios(data);
+    });
+
+    window.onload = () => {
+      inputData.value = "";
+      selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
       selectHora.disabled = true;
-      carregarHorarios(data);
-    } catch (error) {
-      console.error("Erro ao salvar agendamento: ", error);
-      alert("Erro ao salvar agendamento. Tente novamente mais tarde.");
-    }
-  });
+    };
 
-  inputData.addEventListener("change", (e) => {
-    selectHora.disabled = false;
-    carregarHorarios(e.target.value);
-  });
-
-  document.getElementById("servico").addEventListener("change", () => {
-    const data = inputData.value;
-    if (data) carregarHorarios(data);
-  });
-
-  window.onload = () => {
-    inputData.value = "";
-    selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
-    selectHora.disabled = true;
-  };
-
-  document.getElementById("btn-acessar").addEventListener("click", function (event) {
-    event.preventDefault();
-    const senha = prompt("Digite a senha de acesso:");
-    if (senha === "1425") {
-      window.location.href = "agendamentos.html";
-    } else {
-      alert("❌ Senha incorreta. Acesso negado.");
-    }
-  });
-</script>
+    document.getElementById("btn-acessar").addEventListener("click", function (event) {
+      event.preventDefault();
+      const senha = prompt("Digite a senha de acesso:");
+      if (senha === "1425") {
+        window.location.href = "agendamentos.html";
+      } else {
+        alert("❌ Senha incorreta. Acesso negado.");
+      }
+    });
+  </script>
+</body>
+</html>
