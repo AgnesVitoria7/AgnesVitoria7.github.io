@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agendamento</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+      max-width: 500px;
+      margin: auto;
     }
 
     label {
@@ -16,30 +18,29 @@
     }
 
     select, input, button {
-      margin-top: 5px;
-      padding: 8px;
       width: 100%;
-      max-width: 400px;
+      padding: 8px;
+      margin-top: 5px;
     }
 
     option:disabled {
-      color: #aaa;
+      color: gray;
     }
   </style>
 </head>
 <body>
-  <h2>Agendamento</h2>
+  <h2>Agendamento de Serviço</h2>
 
   <label for="servico">Serviço:</label>
   <select id="servico">
-    <option value="">Selecione um serviço</option>
+    <option value="">Selecione o serviço</option>
     <option value="manicure">Manicure</option>
     <option value="pedicure">Pedicure</option>
     <option value="manicure-pedicure">Manicure e Pedicure</option>
   </select>
 
   <label for="data">Data:</label>
-  <input type="date" id="data" />
+  <input type="date" id="data">
 
   <label for="hora">Hora:</label>
   <select id="hora"></select>
@@ -64,55 +65,53 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const selectServico = document.getElementById("servico");
-    const selectData = document.getElementById("data");
-    const selectHora = document.getElementById("hora");
+    const horariosFixos = [
+      "08:00", "09:00", "10:00", "11:00",
+      "12:00", "13:00", "14:00", "15:00",
+      "16:00", "17:00"
+    ];
 
-    const horariosFixos = Array.from({ length: 10 }, (_, i) => {
-      const hora = 8 + i;
-      return `${hora.toString().padStart(2, '0')}:00`;
-    });
+    const servicoInput = document.getElementById("servico");
+    const dataInput = document.getElementById("data");
+    const horaInput = document.getElementById("hora");
 
     async function carregarHorarios() {
-      const data = selectData.value;
-      const servico = selectServico.value;
+      const dataSelecionada = dataInput.value;
+      const servicoSelecionado = servicoInput.value;
 
-      selectHora.innerHTML = "<option value=''>Selecione um horário</option>";
+      horaInput.innerHTML = "<option value=''>Selecione o horário</option>";
 
-      if (!data) return;
+      if (!dataSelecionada || !servicoSelecionado) return;
 
-      const q = query(collection(db, "agendamentos"), where("data", "==", data));
+      const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
       const snapshot = await getDocs(q);
-      const agendados = snapshot.docs.map(doc => doc.data());
+      const agendamentos = snapshot.docs.map(doc => doc.data());
 
       horariosFixos.forEach((hora, index) => {
         const proximaHora = horariosFixos[index + 1];
-        const ocupado = agendados.some(a => a.hora === hora);
-        const proximoOcupado = servico === "manicure-pedicure" && agendados.some(a => a.hora === proximaHora);
+
+        const jaAgendado = agendamentos.some(a => a.hora === hora);
+        const proximaJaAgendada = servicoSelecionado === "manicure-pedicure" && agendamentos.some(a => a.hora === proximaHora);
+
+        const deveDesabilitar = jaAgendado ||
+          (servicoSelecionado === "manicure-pedicure" && (!proximaHora || proximaJaAgendada));
 
         const option = document.createElement("option");
         option.value = hora;
-        option.textContent = hora;
+        option.textContent = hora + (deveDesabilitar ? " (Indisponível)" : "");
+        option.disabled = deveDesabilitar;
 
-        if (
-          ocupado ||
-          (servico === "manicure-pedicure" && (!proximaHora || proximoOcupado))
-        ) {
-          option.disabled = true;
-          option.textContent += " (Indisponível)";
-        }
-
-        selectHora.appendChild(option);
+        horaInput.appendChild(option);
       });
     }
 
-    selectData.addEventListener("change", carregarHorarios);
-    selectServico.addEventListener("change", carregarHorarios);
+    servicoInput.addEventListener("change", carregarHorarios);
+    dataInput.addEventListener("change", carregarHorarios);
 
     async function agendar() {
-      const servico = selectServico.value;
-      const data = selectData.value;
-      const hora = selectHora.value;
+      const servico = servicoInput.value;
+      const data = dataInput.value;
+      const hora = horaInput.value;
 
       if (!servico || !data || !hora) {
         alert("Preencha todos os campos!");
@@ -126,11 +125,24 @@
           hora
         });
 
-        alert("Agendado com sucesso!");
+        // Se for manicure-pedicure, também agenda o próximo horário
+        if (servico === "manicure-pedicure") {
+          const index = horariosFixos.indexOf(hora);
+          const proximaHora = horariosFixos[index + 1];
+          if (proximaHora) {
+            await addDoc(collection(db, "agendamentos"), {
+              servico,
+              data,
+              hora: proximaHora
+            });
+          }
+        }
+
+        alert("Agendamento realizado com sucesso!");
         carregarHorarios();
-      } catch (error) {
-        console.error("Erro:", error);
-        alert("Erro ao agendar.");
+      } catch (e) {
+        console.error("Erro ao agendar:", e);
+        alert("Erro ao agendar. Tente novamente.");
       }
     }
   </script>
