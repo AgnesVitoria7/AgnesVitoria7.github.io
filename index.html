@@ -110,7 +110,6 @@
   </style>
 </head>
 <body>
-
   <main>
     <h1>Espaço Bela Flor</h1>
     <p>Agende seu horário</p>
@@ -126,7 +125,6 @@
         <input type="date" id="data" name="data" required />
       </div>
 
-      <!-- CAMPO SERVIÇO ANTES DO HORÁRIO -->
       <div>
         <label for="servico">Serviço:</label>
         <select id="servico" name="servico" required>
@@ -156,7 +154,6 @@
     <div id="mensagem-sucesso" class="oculto">✅ Agendamento realizado com sucesso!</div>
   </main>
 
-  <!-- Firebase SDKs (modular) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
@@ -200,33 +197,22 @@
         }
       }
 
+      const servicoSelecionado = document.getElementById("servico").value;
+
       horariosFixos.forEach((hora, i) => {
         const option = document.createElement("option");
         option.value = hora;
         option.textContent = hora;
 
-        const servicoSelecionado = document.getElementById("servico").value;
+        const ocupado = agendamentos.some(a => a.hora === hora);
+        const proximaHora = horariosFixos[i + 1];
+        const proximoOcupado = agendamentos.some(a => a.hora === proximaHora);
 
-        const servicoSelecionado = document.getElementById("servico").value;
-
-let ocupado = agendamentos.some(a => a.hora === hora);
-let proximoHorario = horariosFixos[i + 1];
-let proximoOcupado = agendamentos.some(a => a.hora === proximoHorario);
-
-// Se for "manicure-pedicure", precisa de 2 horários consecutivos livres
-if (servicoSelecionado === "manicure-pedicure") {
-  if (ocupado || proximoOcupado || !proximoHorario) {
-    option.disabled = true;
-    option.textContent += " (indisponível)";
-    option.style.color = "#aaa";
-  }
-} else {
-  if (ocupado) {
-    option.disabled = true;
-    option.textContent += " (indisponível)";
-    option.style.color = "#aaa";
-  }
-}
+        if (ocupado || (servicoSelecionado === "manicure-pedicure" && proximoOcupado)) {
+          option.disabled = true;
+          option.textContent += " (indisponível)";
+          option.style.color = "#aaa";
+        }
 
         selectHora.appendChild(option);
       });
