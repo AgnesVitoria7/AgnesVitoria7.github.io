@@ -94,11 +94,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function formatarDataParaExibicao(dataStr) {
-      const partes = dataStr.split("-");
-      return `${partes[0]}/${partes[1]}/${partes[2]}`;
-    }
-
     async function carregarAgendamentos() {
       const container = document.getElementById("lista-agendamentos");
       container.innerHTML = "";
@@ -119,24 +114,25 @@
           return;
         }
 
-        // Ordena por data decrescente
+        // Ordena por data decrescente (mais recente primeiro)
         agendamentos.sort((a, b) => b.dataObj - a.dataObj);
 
-        // Agrupa por data no formato dd/mm/aaaa
+        // Agrupa por data
         const agendamentosPorData = {};
         agendamentos.forEach(agendamento => {
-          const dataFormatada = formatarDataParaExibicao(agendamento.data);
+          const dataFormatada = agendamento.data;
           if (!agendamentosPorData[dataFormatada]) {
             agendamentosPorData[dataFormatada] = [];
           }
           agendamentosPorData[dataFormatada].push(agendamento);
         });
 
+        // Ordena as datas em ordem decrescente
         const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => {
-          const [diaA, mesA, anoA] = a.split("/");
-          const [diaB, mesB, anoB] = b.split("/");
-          const dataA = new Date(`${anoA}-${mesA}-${diaA}`);
-          const dataB = new Date(`${anoB}-${mesB}-${diaB}`);
+          const partesA = a.split("-");
+          const partesB = b.split("-");
+          const dataA = new Date(`${partesA[2]}-${partesA[1]}-${partesA[0]}`);
+          const dataB = new Date(`${partesB[2]}-${partesB[1]}-${partesB[0]}`);
           return dataB - dataA;
         });
 
