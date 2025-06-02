@@ -17,32 +17,28 @@
       color: #d15b91;
     }
 
-    .data-header {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin: 2rem auto 0.5rem auto;
-  color: #8e2c63;
-  border-bottom: 2px solid #e26ca4;
-  padding-bottom: 0.3rem;
-  width: fit-content;
-  text-align: center;
-  display: block;
-}
+    .data-titulo {
+      margin-top: 2rem;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #8e2c63;
+      border-bottom: 2px solid #d15b91;
+      padding-bottom: 0.5rem;
+      text-align: center;
+    }
 
-    
     .card {
       background: #fff;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(209, 91, 145, 0.15);
       padding: 1rem;
       margin: 1rem auto;
-      width: 100%;
-      max-width: 500px;
-      box-sizing: border-box;
+      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
+      max-width: 600px;
     }
 
     .card p {
       margin: 0.3rem 0;
+      color: #333;
     }
 
     .botoes {
@@ -60,19 +56,47 @@
       font-weight: bold;
       text-decoration: none;
       transition: background-color 0.3s;
-      margin: 0 0.5rem;
     }
 
     .botao-link:hover {
       background-color: #d15b91;
     }
+
+    .acoes {
+      margin-top: 0.8rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 0.4rem 0.8rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .btn-editar {
+      background-color: #f0ad4e;
+      color: white;
+    }
+
+    .btn-excluir {
+      background-color: #d9534f;
+      color: white;
+    }
+
+    .btn-atendido {
+      background-color: #5cb85c;
+      color: white;
+    }
   </style>
 </head>
 <body>
   <h1>Agendamentos</h1>
-  <div id="lista-agendamentos">
-    <p>Carregando agendamentos...</p>
-  </div>
+  <div id="lista-agendamentos"></div>
 
   <div class="botoes">
     <a href="index.html" class="botao-link">Voltar</a>
@@ -95,18 +119,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function formatarDataParaDDMMYYYY(dataStr) {
-      // Caso a data venha como "2025-06-01"
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
-        const [ano, mes, dia] = dataStr.split("-");
-        return `${dia}/${mes}/${ano}`;
-      }
-
-      // Caso a data venha como timestamp ou objeto Date
-      const data = new Date(dataStr);
-      const dia = String(data.getDate()).padStart(2, '0');
-      const mes = String(data.getMonth() + 1).padStart(2, '0');
-      const ano = data.getFullYear();
+    function formatarData(yyyyMMdd) {
+      const [ano, mes, dia] = yyyyMMdd.split("-");
       return `${dia}/${mes}/${ano}`;
     }
 
@@ -116,65 +130,70 @@
 
       try {
         const querySnapshot = await getDocs(collection(db, "agendamentos"));
-        const agendamentos = [];
+        const agendamentosPorData = {};
 
         querySnapshot.forEach(doc => {
-          const dados = doc.data();
-          agendamentos.push({
-            ...dados,
-            dataObj: new Date(dados.data)
-          });
+          const agendamento = doc.data();
+          agendamento.id = doc.id;
+
+          if (!agendamentosPorData[agendamento.data]) {
+            agendamentosPorData[agendamento.data] = [];
+          }
+          agendamentosPorData[agendamento.data].push(agendamento);
         });
 
-        if (agendamentos.length === 0) {
-          container.innerHTML = "<p>Nenhum agendamento encontrado.</p>";
+        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => new Date(b) - new Date(a));
+
+        if (datasOrdenadas.length === 0) {
+          container.innerHTML = "<p style='text-align: center;'>Nenhum agendamento encontrado.</p>";
           return;
         }
 
-        agendamentos.sort((a, b) => b.dataObj - a.dataObj);
-
-        const agendamentosPorData = {};
-        agendamentos.forEach(agendamento => {
-          const dataFormatada = formatarDataParaDDMMYYYY(agendamento.data);
-          if (!agendamentosPorData[dataFormatada]) {
-            agendamentosPorData[dataFormatada] = [];
-          }
-          agendamentosPorData[dataFormatada].push(agendamento);
-        });
-
-        const datasOrdenadas = Object.keys(agendamentosPorData).sort((a, b) => {
-          const [d1, m1, y1] = a.split("/").map(Number);
-          const [d2, m2, y2] = b.split("/").map(Number);
-          return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-        });
-
         datasOrdenadas.forEach(data => {
-          const dataTitulo = document.createElement("div");
-          dataTitulo.className = "data-header";
-          dataTitulo.textContent = data;
-          container.appendChild(dataTitulo);
+          const tituloData = document.createElement("div");
+          tituloData.classList.add("data-titulo");
+          tituloData.textContent = formatarData(data);
+          container.appendChild(tituloData);
 
           agendamentosPorData[data].forEach(agendamento => {
             const card = document.createElement("div");
-            card.className = "card";
+            card.classList.add("card");
 
             card.innerHTML = `
               <p><strong>Nome:</strong> ${agendamento.nome}</p>
               <p><strong>Hora:</strong> ${agendamento.hora}</p>
               <p><strong>Serviço:</strong> ${agendamento.servico}</p>
               <p><strong>Contato:</strong> ${agendamento.contato}</p>
+              <div class="acoes">
+                <button class="btn btn-editar" onclick="editarAgendamento('${agendamento.id}')">Editar</button>
+                <button class="btn btn-excluir" onclick="excluirAgendamento('${agendamento.id}')">Excluir</button>
+                <button class="btn btn-atendido" onclick="marcarComoAtendido('${agendamento.id}')">Atendido</button>
+              </div>
             `;
+
             container.appendChild(card);
           });
         });
-
       } catch (error) {
         console.error("Erro ao carregar agendamentos:", error);
-        container.innerHTML = "<p>Erro ao carregar dados.</p>";
+        container.innerHTML = "<p style='text-align: center;'>Erro ao carregar dados.</p>";
       }
     }
 
     carregarAgendamentos();
+
+    // Funções placeholders para implementar depois
+    window.editarAgendamento = function (id) {
+      alert("Editar agendamento com ID: " + id);
+    }
+
+    window.excluirAgendamento = function (id) {
+      alert("Excluir agendamento com ID: " + id);
+    }
+
+    window.marcarComoAtendido = function (id) {
+      alert("Marcar como atendido: " + id);
+    }
   </script>
 </body>
 </html>
