@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agendamentos Pendentes</title>
+  <title>Agendamentos Atendidos</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
-      background-color: #ffe9f2;
+      background-image: url('/Imagens/rosinha.png');
+      background-size: cover;
+      background-position: center;
       margin: 0;
       padding: 0;
     }
@@ -16,7 +18,7 @@
       max-width: 700px;
       margin: 2rem auto;
       padding: 2rem;
-      background: #fff;
+      background: #ffffffee;
       border-radius: 12px;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
@@ -24,6 +26,15 @@
     h1 {
       text-align: center;
       color: #d15b91;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+      color: #d15b91;
+      border-bottom: 1px solid #f8cce7;
+      padding-bottom: 0.3rem;
+      text-transform: capitalize;
     }
 
     ul {
@@ -37,6 +48,7 @@
       padding: 1rem;
       border-radius: 8px;
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+      position: relative;
     }
 
     .botoes {
@@ -79,96 +91,141 @@
 </head>
 <body>
   <main>
-    <h1>Agendamentos Pendentes</h1>
-    <ul id="lista-agendamentos"></ul>
-    <a href="agendamentosatendidos.html" class="voltar">→ Ver Agendamentos Atendidos</a>
+    <h1>Agendamentos Atendidos</h1>
+    <ul id="lista-atendidos"></ul>
+    <a href="agendamentos.html" class="voltar">← Voltar aos Agendamentos Pendentes</a>
   </main>
 
   <script type="module">
-    // Firebase imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import {
-      getDatabase,
-      ref,
-      onValue,
-      remove,
-      set
-    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+      getFirestore,
+      collection,
+      getDocs,
+      deleteDoc,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-    // Configuração do Firebase
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_DOMINIO.firebaseapp.com",
-      databaseURL: "https://SEU_PROJETO.firebaseio.com",
-      projectId: "SEU_PROJECT_ID",
-      storageBucket: "SEU_BUCKET.appspot.com",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SUA_APP_ID"
+      apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
+      authDomain: "espaco-bela-flor.firebaseapp.com",
+      projectId: "espaco-bela-flor",
+      storageBucket: "espaco-bela-flor.appspot.com",
+      messagingSenderId: "1073820568560",
+      appId: "1:1073820568560:web:c8d47db51411b44b66ab35"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db = getFirestore(app);
 
-    const lista = document.getElementById("lista-agendamentos");
+    function formatarData(yyyyMMdd) {
+      const [ano, mes, dia] = yyyyMMdd.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
 
-    function carregarAgendamentos() {
-      const agendamentosRef = ref(db, "agendamentos");
+    async function carregarAgendamentosAtendidos() {
+      const lista = document.getElementById("lista-atendidos");
+      lista.innerHTML = "";
 
-      onValue(agendamentosRef, (snapshot) => {
-        lista.innerHTML = "";
+      try {
+        const querySnapshot = await getDocs(collection(db, "agendamentosAtendidos"));
+        const atendidos = [];
 
-        if (!snapshot.exists()) {
-          lista.innerHTML = "<p style='text-align:center;'>Nenhum agendamento pendente.</p>";
+        querySnapshot.forEach(docSnap => {
+          const agendamento = docSnap.data();
+          agendamento.id = docSnap.id;
+          atendidos.push(agendamento);
+        });
+
+        if (atendidos.length === 0) {
+          lista.innerHTML = "<p style='text-align:center;'>Nenhum agendamento atendido ainda.</p>";
           return;
         }
 
-        const dados = snapshot.val();
-        const dadosArray = Object.values(dados).sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora));
-
-        dadosArray.forEach(item => {
-          const li = document.createElement("li");
-          li.innerHTML = `
-            <strong>Nome:</strong> ${item.nome}<br>
-            <strong>Data:</strong> ${item.data}<br>
-            <strong>Hora:</strong> ${item.hora}<br>
-            <strong>Serviço:</strong> ${item.servico}<br>
-            <strong>Contato:</strong> ${item.contato}
-            <div class="botoes">
-              <button class="botao atender" data-id="${item.id}">✅ Atendido</button>
-              <button class="botao excluir" data-id="${item.id}">🗑️ Excluir</button>
-            </div>
-          `;
-          lista.appendChild(li);
+        // Agrupa por data
+        const atendidosPorData = {};
+        atendidos.forEach(ag => {
+          if (!atendidosPorData[ag.data]) {
+            atendidosPorData[ag.data] = [];
+          }
+          atendidosPorData[ag.data].push(ag);
         });
-      });
+
+        const datasOrdenadas = Object.keys(atendidosPorData).sort((a, b) => new Date(b) - new Date(a));
+
+        datasOrdenadas.forEach(data => {
+          const tituloData = document.createElement("h2");
+          tituloData.textContent = formatarData(data);
+          lista.appendChild(tituloData);
+
+          const agendamentosOrdenados = atendidosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
+
+          agendamentosOrdenados.forEach(agendamento => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+              <strong>Nome:</strong> ${agendamento.nome}<br>
+              <strong>Hora:</strong> ${agendamento.hora}<br>
+              <strong>Serviço:</strong> ${agendamento.servico}<br>
+              <strong>Contato:</strong> ${agendamento.contato}
+              <div class="botoes">
+                <button class="botao restaurar" data-id="${agendamento.id}">🔄 Restaurar</button>
+                <button class="botao excluir-atendido" data-id="${agendamento.id}">🗑️ Excluir</button>
+              </div>
+            `;
+            lista.appendChild(li);
+          });
+        });
+      } catch (error) {
+        console.error("Erro ao carregar agendamentos atendidos:", error);
+        lista.innerHTML = "<p style='text-align:center;'>Erro ao carregar dados.</p>";
+      }
     }
 
-    document.addEventListener("click", (e) => {
-      const id = e.target.getAttribute("data-id");
+    carregarAgendamentosAtendidos();
 
-      if (e.target.classList.contains("excluir")) {
-        if (confirm("Deseja excluir este agendamento?")) {
-          remove(ref(db, "agendamentos/" + id));
+    document.addEventListener("click", async function (e) {
+      if (e.target.classList.contains("excluir-atendido")) {
+        const id = e.target.getAttribute("data-id");
+        if (confirm("Tem certeza que deseja excluir este agendamento atendido?")) {
+          try {
+            await deleteDoc(doc(db, "agendamentosAtendidos", id));
+            alert("Agendamento atendido excluído com sucesso!");
+            carregarAgendamentosAtendidos();
+          } catch (error) {
+            console.error("Erro ao excluir agendamento atendido:", error);
+            alert("Erro ao excluir agendamento atendido.");
+          }
         }
       }
 
-      if (e.target.classList.contains("atender")) {
-        const agRef = ref(db, "agendamentos/" + id);
+      if (e.target.classList.contains("restaurar")) {
+        const id = e.target.getAttribute("data-id");
+        try {
+          const docRef = doc(db, "agendamentosAtendidos", id);
+          const docSnap = await getDoc(docRef);
 
-        onValue(agRef, (snapshot) => {
-          const dado = snapshot.val();
-          if (dado) {
-            set(ref(db, "agendamentosatendidos/" + id), dado)
-              .then(() => remove(agRef))
-              .then(() => {
-                alert("Agendamento marcado como atendido.");
-              });
+          if (!docSnap.exists()) {
+            alert("Agendamento não encontrado.");
+            return;
           }
-        }, { onlyOnce: true });
+
+          const agendamentoData = docSnap.data();
+
+          // Adiciona na coleção agendamentos
+          await setDoc(doc(db, "agendamentos", id), agendamentoData);
+
+          // Remove da coleção agendamentosAtendidos
+          await deleteDoc(docRef);
+
+          alert("Agendamento restaurado com sucesso!");
+          carregarAgendamentosAtendidos();
+        } catch (error) {
+          console.error("Erro ao restaurar agendamento:", error);
+          alert("Erro ao restaurar agendamento.");
+        }
       }
     });
-
-    carregarAgendamentos();
   </script>
 </body>
 </html>
