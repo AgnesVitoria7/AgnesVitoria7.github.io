@@ -47,7 +47,6 @@
   <button onclick="agendar()">Agendar</button>
 
   <script type="module">
-    // Firebase config e inicialização
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import {
       getFirestore, collection, addDoc, getDocs, query, where
@@ -56,8 +55,8 @@
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
       authDomain: "SEU_DOMINIO.firebaseapp.com",
-      projectId: "SEU_PROJETO_ID",
-      storageBucket: "SEU_PROJETO.appspot.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_BUCKET.appspot.com",
       messagingSenderId: "SEU_SENDER_ID",
       appId: "SUA_APP_ID"
     };
@@ -65,74 +64,58 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const selectServico = document.getElementById("servico");
     const selectData = document.getElementById("data");
     const selectHora = document.getElementById("hora");
 
-    function gerarHorariosFixos() {
-      const horarios = [];
-      for (let hora = 8; hora <= 17; hora++) {
-        horarios.push(`${hora.toString().padStart(2, '0')}:00`);
-      }
-      return horarios;
-    }
+    const horariosFixos = Array.from({ length: 10 }, (_, i) => {
+      const hora = 8 + i;
+      return `${hora.toString().padStart(2, '0')}:00`;
+    });
 
-    async function carregarHorarios(dataSelecionada = null) {
-      const horariosFixos = gerarHorariosFixos();
+    async function carregarHorarios() {
+      const data = selectData.value;
+      const servico = selectServico.value;
+
       selectHora.innerHTML = "<option value=''>Selecione um horário</option>";
 
-      let agendamentos = [];
-      if (dataSelecionada) {
-        try {
-          const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
-          const querySnapshot = await getDocs(q);
-          agendamentos = querySnapshot.docs.map(doc => doc.data());
-        } catch (error) {
-          console.error("Erro ao buscar agendamentos: ", error);
-        }
-      }
+      if (!data) return;
 
-      const servicoSelecionado = document.getElementById("servico").value;
+      const q = query(collection(db, "agendamentos"), where("data", "==", data));
+      const snapshot = await getDocs(q);
+      const agendados = snapshot.docs.map(doc => doc.data());
 
-      horariosFixos.forEach((hora, i) => {
+      horariosFixos.forEach((hora, index) => {
+        const proximaHora = horariosFixos[index + 1];
+        const ocupado = agendados.some(a => a.hora === hora);
+        const proximoOcupado = servico === "manicure-pedicure" && agendados.some(a => a.hora === proximaHora);
+
         const option = document.createElement("option");
         option.value = hora;
         option.textContent = hora;
 
-        const proximaHora = horariosFixos[i + 1];
-
-        const horaOcupada = agendamentos.some(a => a.hora === hora);
-        const proximaOcupada = servicoSelecionado === "manicure-pedicure" && agendamentos.some(a => a.hora === proximaHora);
-
-        const deveBloquear = horaOcupada || proximaOcupada;
-
-        if (deveBloquear || (servicoSelecionado === "manicure-pedicure" && !proximaHora)) {
+        if (
+          ocupado ||
+          (servico === "manicure-pedicure" && (!proximaHora || proximoOcupado))
+        ) {
           option.disabled = true;
-          option.textContent += " (indisponível)";
+          option.textContent += " (Indisponível)";
         }
 
         selectHora.appendChild(option);
       });
     }
 
-    selectData.addEventListener("change", () => {
-      if (selectData.value) {
-        carregarHorarios(selectData.value);
-      }
-    });
-
-    document.getElementById("servico").addEventListener("change", () => {
-      if (selectData.value) {
-        carregarHorarios(selectData.value);
-      }
-    });
+    selectData.addEventListener("change", carregarHorarios);
+    selectServico.addEventListener("change", carregarHorarios);
 
     async function agendar() {
-      const servico = document.getElementById("servico").value;
+      const servico = selectServico.value;
       const data = selectData.value;
       const hora = selectHora.value;
 
       if (!servico || !data || !hora) {
-        alert("Preencha todos os campos.");
+        alert("Preencha todos os campos!");
         return;
       }
 
@@ -143,11 +126,11 @@
           hora
         });
 
-        alert("Agendamento realizado com sucesso!");
-        carregarHorarios(data); // atualizar os horários
+        alert("Agendado com sucesso!");
+        carregarHorarios();
       } catch (error) {
-        console.error("Erro ao agendar:", error);
-        alert("Erro ao realizar agendamento.");
+        console.error("Erro:", error);
+        alert("Erro ao agendar.");
       }
     }
   </script>
