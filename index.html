@@ -196,11 +196,9 @@
       selectHora.disabled = false;
 
       try {
-        // Busca agendamentos da data selecionada
+        // Busca os agendamentos da data selecionada
         const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
         const querySnapshot = await getDocs(q);
-
-        // Extrai todos os horários já ocupados
         const horariosOcupados = querySnapshot.docs.map(doc => doc.data().hora);
 
         const servicoSelecionado = selectServico.value;
@@ -210,19 +208,22 @@
           option.value = hora;
           option.textContent = hora;
 
-          // Verifica se está ocupado
-          if (horariosOcupados.includes(hora)) {
-            option.disabled = true;
-            option.textContent += " (indisponível)";
-            option.style.color = "#aaa";
-          }
+          const horarioAtualOcupado = horariosOcupados.includes(hora);
+          const proximoHorario = horariosFixos[index + 1];
+          const proximoHorarioOcupado = proximoHorario ? horariosOcupados.includes(proximoHorario) : false;
 
-          // Se for manicure + pedicure, bloqueia próximo horário também
           if (servicoSelecionado === "manicure-pedicure") {
-            const horarioAnterior = horariosFixos[index - 1];
-            if (horariosOcupados.includes(horarioAnterior)) {
+            // Bloqueia se o horário atual ou o próximo estiverem ocupados
+            if (horarioAtualOcupado || proximoHorarioOcupado) {
               option.disabled = true;
-              option.textContent += " (indisponível - duração estendida)";
+              option.textContent += " (indisponível)";
+              option.style.color = "#aaa";
+            }
+          } else {
+            // Para os outros serviços, bloqueia só se o horário atual estiver ocupado
+            if (horarioAtualOcupado) {
+              option.disabled = true;
+              option.textContent += " (indisponível)";
               option.style.color = "#aaa";
             }
           }
@@ -245,24 +246,12 @@
       const contato = document.getElementById("contato").value.trim();
 
       if (!data || !hora) {
-        alert("Por favor, selecione uma data e horário disponíveis.");
+        alert("Por favor, selecione a data e o horário.");
         return;
       }
 
       try {
-        // Verifica novamente no envio se o horário está disponível
-        const q = query(
-          collection(db, "agendamentos"),
-          where("data", "==", data),
-          where("hora", "==", hora)
-        );
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          alert("⚠️ Este horário já foi agendado. Por favor, escolha outro.");
-          return;
-        }
-
+        // Grava o agendamento no Firestore
         await addDoc(collection(db, "agendamentos"), {
           nome,
           data,
@@ -272,28 +261,20 @@
           criadoEm: Timestamp.now()
         });
 
+        // Exibe mensagem de sucesso e limpa o formulário
         document.getElementById("mensagem-sucesso").classList.remove("oculto");
         form.reset();
         selectHora.disabled = true;
-        // Recarregar horários para atualizar a lista bloqueada
-        carregarHorarios("");
-
+        selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
       } catch (error) {
-        console.error("Erro ao salvar agendamento:", error);
-        alert("Erro ao agendar, tente novamente mais tarde.");
+        alert("Erro ao gravar agendamento. Tente novamente.");
+        console.error("Erro no addDoc:", error);
       }
     });
 
-    inputData.addEventListener("change", () => {
-      carregarHorarios(inputData.value);
-    });
-
-    selectServico.addEventListener("change", () => {
-      if (inputData.value) {
-        carregarHorarios(inputData.value);
-      }
-    });
-
+    // Atualiza horários quando a data ou serviço mudar
+    inputData.addEventListener("change", () => carregarHorarios(inputData.value));
+    selectServico.addEventListener("change", () => carregarHorarios(inputData.value));
   </script>
 </body>
 </html>
