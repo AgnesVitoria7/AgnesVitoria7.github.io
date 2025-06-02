@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agendamentos Atendidos</title>
+  <title>Agendamentos Pendentes</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
-      background-image: url('/Imagens/rosinha.png');
-      background-size: cover;
-      background-position: center;
+      background-color: #ffe9f2;
       margin: 0;
       padding: 0;
     }
@@ -18,7 +16,7 @@
       max-width: 700px;
       margin: 2rem auto;
       padding: 2rem;
-      background: #ffffffee;
+      background: #fff;
       border-radius: 12px;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
@@ -26,15 +24,6 @@
     h1 {
       text-align: center;
       color: #d15b91;
-    }
-
-    h2 {
-      font-size: 1.2rem;
-      margin-top: 2rem;
-      color: #d15b91;
-      border-bottom: 1px solid #f8cce7;
-      padding-bottom: 0.3rem;
-      text-transform: capitalize;
     }
 
     ul {
@@ -48,7 +37,6 @@
       padding: 1rem;
       border-radius: 8px;
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-      position: relative;
     }
 
     .botoes {
@@ -91,55 +79,63 @@
 </head>
 <body>
   <main>
-    <h1>Agendamentos Atendidos</h1>
-    <ul id="lista-atendidos"></ul>
-    <a href="agendamentos.html" class="voltar">← Voltar aos Agendamentos Pendentes</a>
+    <h1>Agendamentos Pendentes</h1>
+    <ul id="lista-agendamentos"></ul>
+    <a href="agendamentosatendidos.html" class="voltar">→ Ver Agendamentos Atendidos</a>
   </main>
 
-  <script>
-    const atendidos = JSON.parse(localStorage.getItem("agendamentosatendidos") || "[]");
+  <script type="module">
+    // Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      remove,
+      set
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-    // Agrupa atendidos por data
-    const atendidosPorData = {};
-    atendidos.forEach(ag => {
-      if (!atendidosPorData[ag.data]) {
-        atendidosPorData[ag.data] = [];
-      }
-      atendidosPorData[ag.data].push(ag);
-    });
+    // Configuração do Firebase
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_DOMINIO.firebaseapp.com",
+      databaseURL: "https://SEU_PROJETO.firebaseio.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_BUCKET.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SUA_APP_ID"
+    };
 
-    const datasOrdenadas = Object.keys(atendidosPorData).sort((a, b) => new Date(b) - new Date(a));
-    const lista = document.getElementById("lista-atendidos");
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    if (atendidos.length === 0) {
-      lista.innerHTML = "<p style='text-align:center;'>Nenhum agendamento atendido ainda.</p>";
-    } else {
-      datasOrdenadas.forEach(data => {
-        const tituloData = document.createElement("h2");
-        const [ano, mes, dia] = data.split("-");
-        const dataFormatada = new Date(ano, mes - 1, dia);
+    const lista = document.getElementById("lista-agendamentos");
 
-        tituloData.textContent = dataFormatada.toLocaleDateString("pt-BR", {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
+    function carregarAgendamentos() {
+      const agendamentosRef = ref(db, "agendamentos");
 
-        lista.appendChild(tituloData);
+      onValue(agendamentosRef, (snapshot) => {
+        lista.innerHTML = "";
 
-        const agendamentosOrdenados = atendidosPorData[data].sort((a, b) => a.hora.localeCompare(b.hora));
+        if (!snapshot.exists()) {
+          lista.innerHTML = "<p style='text-align:center;'>Nenhum agendamento pendente.</p>";
+          return;
+        }
 
-        agendamentosOrdenados.forEach((item, index) => {
+        const dados = snapshot.val();
+        const dadosArray = Object.values(dados).sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora));
+
+        dadosArray.forEach(item => {
           const li = document.createElement("li");
           li.innerHTML = `
             <strong>Nome:</strong> ${item.nome}<br>
+            <strong>Data:</strong> ${item.data}<br>
             <strong>Hora:</strong> ${item.hora}<br>
             <strong>Serviço:</strong> ${item.servico}<br>
             <strong>Contato:</strong> ${item.contato}
             <div class="botoes">
-              <button class="botao restaurar" data-index="${index}">🔄 Restaurar</button>
-              <button class="botao excluir-atendido" data-index="${index}">🗑️ Excluir</button>
+              <button class="botao atender" data-id="${item.id}">✅ Atendido</button>
+              <button class="botao excluir" data-id="${item.id}">🗑️ Excluir</button>
             </div>
           `;
           lista.appendChild(li);
@@ -147,28 +143,32 @@
       });
     }
 
-    document.addEventListener("click", function (e) {
-      if (e.target.classList.contains("excluir-atendido")) {
-        const idx = e.target.getAttribute("data-index");
-        if (confirm("Tem certeza que deseja excluir este agendamento atendido?")) {
-          atendidos.splice(idx, 1);
-          localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
-          location.reload();
+    document.addEventListener("click", (e) => {
+      const id = e.target.getAttribute("data-id");
+
+      if (e.target.classList.contains("excluir")) {
+        if (confirm("Deseja excluir este agendamento?")) {
+          remove(ref(db, "agendamentos/" + id));
         }
       }
 
-      if (e.target.classList.contains("restaurar")) {
-        const idx = e.target.getAttribute("data-index");
-        const agendamentoRestaurado = atendidos.splice(idx, 1)[0];
-        localStorage.setItem("agendamentosatendidos", JSON.stringify(atendidos));
+      if (e.target.classList.contains("atender")) {
+        const agRef = ref(db, "agendamentos/" + id);
 
-        const agendamentosPendentes = JSON.parse(localStorage.getItem("agendamentos") || "[]");
-        agendamentosPendentes.push(agendamentoRestaurado);
-        localStorage.setItem("agendamentos", JSON.stringify(agendamentosPendentes));
-
-        location.reload();
+        onValue(agRef, (snapshot) => {
+          const dado = snapshot.val();
+          if (dado) {
+            set(ref(db, "agendamentosatendidos/" + id), dado)
+              .then(() => remove(agRef))
+              .then(() => {
+                alert("Agendamento marcado como atendido.");
+              });
+          }
+        }, { onlyOnce: true });
       }
     });
+
+    carregarAgendamentos();
   </script>
 </body>
 </html>
