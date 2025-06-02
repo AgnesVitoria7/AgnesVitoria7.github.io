@@ -80,11 +80,6 @@
       font-size: 0.9rem;
     }
 
-    .btn-editar {
-      background-color: #f0ad4e;
-      color: white;
-    }
-
     .btn-excluir {
       background-color: #d9534f;
       color: white;
@@ -113,7 +108,8 @@
       getDocs, 
       deleteDoc, 
       doc, 
-      setDoc 
+      setDoc,
+      getDoc
     } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -174,7 +170,6 @@
               <p><strong>Serviço:</strong> ${agendamento.servico}</p>
               <p><strong>Contato:</strong> ${agendamento.contato}</p>
               <div class="acoes">
-                <button class="btn btn-editar" onclick="editarAgendamento('${agendamento.id}')">Editar</button>
                 <button class="btn btn-excluir" onclick="excluirAgendamento('${agendamento.id}')">Excluir</button>
                 <button class="btn btn-atendido" onclick="marcarComoAtendido('${agendamento.id}')">Atendido</button>
               </div>
@@ -190,11 +185,6 @@
     }
 
     carregarAgendamentos();
-
-    // Função para editar - redireciona para uma página de edição (você cria depois)
-    window.editarAgendamento = function (id) {
-      window.location.href = `editar.html?id=${id}`;
-    };
 
     // Função para excluir agendamento do Firestore
     window.excluirAgendamento = async function (id) {
@@ -214,11 +204,8 @@
     // Função para mover agendamento para "agendamentosAtendidos" e redirecionar para a tela
     window.marcarComoAtendido = async function (id) {
       try {
-        // Pega o documento atual
         const docRef = doc(db, "agendamentos", id);
-        const docSnap = await getDocs(collection(db, "agendamentos"));
-        // Para pegar só o documento do ID:
-        const agendamentoSnap = await import("https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js").then(fs => fs.getDoc(docRef));
+        const agendamentoSnap = await getDoc(docRef);
 
         if (!agendamentoSnap.exists()) {
           alert("Agendamento não encontrado.");
@@ -226,16 +213,12 @@
         }
         const agendamentoData = agendamentoSnap.data();
 
-        // Adiciona na coleção agendamentosAtendidos
         await setDoc(doc(db, "agendamentosAtendidos", id), agendamentoData);
-
-        // Remove da coleção agendamentos
         await deleteDoc(docRef);
 
         alert("Agendamento marcado como atendido!");
         carregarAgendamentos();
 
-        // Redireciona para a tela de agendamentos atendidos
         window.location.href = "agendamentosatendidos.html";
 
       } catch (error) {
