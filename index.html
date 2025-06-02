@@ -152,7 +152,7 @@
       </div>
 
       <button type="submit">Agendar</button>
-      <a href="agendamentos.html" class="link-acessar" onclick="verificarLogin()">Acessar</a>
+      <a href="agendamentos.html" id="btn-acessar" class="link-acessar">Acessar</a>
     </form>
 
     <div id="mensagem-sucesso" class="oculto">✅ Agendamento realizado com sucesso!</div>
@@ -278,6 +278,16 @@
     function verificarLogin() {
       alert("Funcionalidade de acesso ainda não implementada.");
     }
+    document.getElementById("btn-acessar").addEventListener("click", function (event) {
+  event.preventDefault(); // Impede navegação imediata
+  const senha = prompt("Digite a senha de acesso:");
+  if (senha === "1425") {
+    window.location.href = "agendamentos.html";
+  } else {
+    alert("❌ Senha incorreta. Acesso negado.");
+  }
+});
+
   </script>
 </body>
 </html>
