@@ -15,17 +15,29 @@
       text-align: center;
       color: #d15b91;
     }
+    .data-header {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #8e2c63;
+      margin-top: 2rem;
+      margin-bottom: 0.8rem;
+      border-bottom: 2px solid #d15b91;
+      padding-bottom: 0.3rem;
+    }
     .card {
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(209, 91, 145, 0.2);
-      margin-bottom: 1.5rem;
-      padding: 1.2rem 1.5rem;
+      margin-bottom: 1rem;
+      padding: 1rem 1.3rem;
       transition: transform 0.2s;
     }
     .card:hover {
       transform: scale(1.01);
       background-color: #fff7fa;
+    }
+    .card p {
+      margin: 0.3rem 0;
     }
     .card strong {
       color: #8e2c63;
@@ -93,9 +105,9 @@
 
         querySnapshot.forEach(doc => {
           const dados = doc.data();
-          // Converte data para objeto Date para ordenação
+          // Converte a data string em objeto Date
           const partes = dados.data.split("-");
-          const dataObj = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`); // de dd-mm-aaaa para aaaa-mm-dd
+          const dataObj = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
           agendamentos.push({ ...dados, dataObj });
         });
 
@@ -104,22 +116,40 @@
           return;
         }
 
-        // Ordena por data (mais recente primeiro)
+        // Ordena por data decrescente
         agendamentos.sort((a, b) => b.dataObj - a.dataObj);
 
+        // Agrupar por data
+        const agendamentosPorData = {};
         agendamentos.forEach(agendamento => {
-          const card = document.createElement("div");
-          card.className = "card";
-
-          card.innerHTML = `
-            <p><strong>Nome:</strong> ${agendamento.nome}</p>
-            <p><strong>Data:</strong> ${agendamento.data}</p>
-            <p><strong>Hora:</strong> ${agendamento.hora}</p>
-            <p><strong>Serviço:</strong> ${agendamento.servico}</p>
-            <p><strong>Contato:</strong> ${agendamento.contato}</p>
-          `;
-          container.appendChild(card);
+          const dataFormatada = agendamento.data;
+          if (!agendamentosPorData[dataFormatada]) {
+            agendamentosPorData[dataFormatada] = [];
+          }
+          agendamentosPorData[dataFormatada].push(agendamento);
         });
+
+        // Exibe agrupado
+        Object.keys(agendamentosPorData).forEach(data => {
+          const dataTitulo = document.createElement("div");
+          dataTitulo.className = "data-header";
+          dataTitulo.textContent = data;
+          container.appendChild(dataTitulo);
+
+          agendamentosPorData[data].forEach(agendamento => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.innerHTML = `
+              <p><strong>Nome:</strong> ${agendamento.nome}</p>
+              <p><strong>Hora:</strong> ${agendamento.hora}</p>
+              <p><strong>Serviço:</strong> ${agendamento.servico}</p>
+              <p><strong>Contato:</strong> ${agendamento.contato}</p>
+            `;
+            container.appendChild(card);
+          });
+        });
+
       } catch (error) {
         console.error("Erro ao carregar agendamentos:", error);
         container.innerHTML = "<p>Erro ao carregar dados.</p>";
