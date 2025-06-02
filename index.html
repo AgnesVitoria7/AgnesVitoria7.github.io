@@ -219,55 +219,69 @@
     }
 
     form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+  e.preventDefault();
 
-      const nome = document.getElementById("nome").value.trim();
-      const data = inputData.value;
-      const hora = selectHora.value;
-      const servico = document.getElementById("servico").value;
-      const contato = document.getElementById("contato").value.trim();
+  const nome = document.getElementById("nome").value.trim();
+  const data = inputData.value;
+  const hora = selectHora.value;
+  const servico = document.getElementById("servico").value;
+  const contato = document.getElementById("contato").value.trim();
 
-      if (!data || !hora) {
-        alert("Por favor, selecione uma data e horário disponíveis.");
-        return;
-      }
+  if (!data || !hora) {
+    alert("Por favor, selecione uma data e horário disponíveis.");
+    return;
+  }
 
-      const horariosFixos = gerarHorariosFixos();
-      const horaIndex = horariosFixos.indexOf(hora);
-      const proximaHora = horariosFixos[horaIndex + 1];
+  const horariosFixos = gerarHorariosFixos();
+  const horaIndex = horariosFixos.indexOf(hora);
+  const proximaHora = horariosFixos[horaIndex + 1];
 
-      try {
-        const q = query(collection(db, "agendamentos"), where("data", "==", data));
-        const querySnapshot = await getDocs(q);
-        const agendados = querySnapshot.docs.map(doc => doc.data());
+  try {
+    const q = query(collection(db, "agendamentos"), where("data", "==", data));
+    const querySnapshot = await getDocs(q);
+    const agendados = querySnapshot.docs.map(doc => doc.data());
 
-        const jaAgendado = agendados.some(a =>
-          a.hora === hora || (servico === "manicure-pedicure" && a.hora === proximaHora)
-        );
+    const jaAgendado = agendados.some(a =>
+      a.hora === hora || (servico === "manicure-pedicure" && a.hora === proximaHora)
+    );
 
-        if (jaAgendado) {
-          alert("⚠️ Este horário (ou o seguinte) já está ocupado.");
-          return;
-        }
+    if (jaAgendado) {
+      alert("⚠️ Este horário (ou o seguinte) já está ocupado.");
+      return;
+    }
 
-        await addDoc(collection(db, "agendamentos"), {
-          nome,
-          data,
-          hora,
-          servico,
-          contato,
-          criadoEm: Timestamp.now()
-        });
-
-        document.getElementById("mensagem-sucesso").classList.remove("oculto");
-        form.reset();
-        selectHora.disabled = true;
-        carregarHorarios(data);
-      } catch (error) {
-        console.error("Erro ao salvar agendamento: ", error);
-        alert("Erro ao salvar agendamento. Tente novamente mais tarde.");
-      }
+    // Salva o agendamento principal
+    await addDoc(collection(db, "agendamentos"), {
+      nome,
+      data,
+      hora,
+      servico,
+      contato,
+      criadoEm: Timestamp.now()
     });
+
+    // Se for manicure-pedicure, bloqueia também o próximo horário
+    if (servico === "manicure-pedicure" && proximaHora) {
+      await addDoc(collection(db, "agendamentos"), {
+        nome,
+        data,
+        hora: proximaHora,
+        servico: "bloqueio-continuado",
+        contato,
+        criadoEm: Timestamp.now()
+      });
+    }
+
+    document.getElementById("mensagem-sucesso").classList.remove("oculto");
+    form.reset();
+    selectHora.disabled = true;
+    carregarHorarios(data); // Recarrega a agenda com o novo bloqueio
+
+  } catch (error) {
+    console.error("Erro ao salvar agendamento: ", error);
+    alert("Erro ao salvar agendamento. Tente novamente mais tarde.");
+  }
+});
 
     inputData.addEventListener("change", (e) => {
       selectHora.disabled = false;
