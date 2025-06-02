@@ -175,6 +175,7 @@
     const form = document.getElementById("form-agendamento");
     const selectHora = document.getElementById("hora");
     const inputData = document.getElementById("data");
+    const selectServico = document.getElementById("servico");
 
     function gerarHorariosFixos() {
       const horarios = [];
@@ -199,16 +200,29 @@
         }
       }
 
-      horariosFixos.forEach(hora => {
+      const servicoSelecionado = selectServico.value;
+
+      horariosFixos.forEach((hora, index) => {
         const option = document.createElement("option");
         option.value = hora;
         option.textContent = hora;
 
-        if (dataSelecionada) {
-          const ocupado = agendamentos.some(a => a.hora === hora);
-          if (ocupado) {
+        // Horários ocupados
+        const ocupado = agendamentos.some(a => a.hora === hora);
+
+        if (ocupado) {
+          option.disabled = true;
+          option.textContent += " (indisponível)";
+          option.style.color = "#aaa";
+        } else if (servicoSelecionado === "manicure-pedicure") {
+          // Se serviço for manicure-pedicure, bloqueia o horário anterior caso esteja ocupado
+          const horarioAnterior = horariosFixos[index - 1];
+
+          const bloqueiaPorProximidade = agendamentos.some(a => a.hora === horarioAnterior);
+
+          if (bloqueiaPorProximidade) {
             option.disabled = true;
-            option.textContent += " (indisponível)";
+            option.textContent += " (indisponível - duração estendida)";
             option.style.color = "#aaa";
           }
         }
@@ -223,7 +237,7 @@
       const nome = document.getElementById("nome").value.trim();
       const data = inputData.value;
       const hora = selectHora.value;
-      const servico = document.getElementById("servico").value;
+      const servico = selectServico.value;
       const contato = document.getElementById("contato").value.trim();
 
       if (!data || !hora) {
@@ -232,6 +246,7 @@
       }
 
       try {
+        // Verifica se o horário já está agendado
         const q = query(
           collection(db, "agendamentos"),
           where("data", "==", data),
@@ -244,6 +259,28 @@
           return;
         }
 
+        // Se serviço for manicure-pedicure, verifica se próximo horário está livre
+        if (servico === "manicure-pedicure") {
+          const horariosFixos = gerarHorariosFixos();
+          const indiceHoraAtual = horariosFixos.indexOf(hora);
+          const proximoHorario = horariosFixos[indiceHoraAtual + 1];
+          if (!proximoHorario) {
+            alert("Não há horário disponível para manicure + pedicure nesse horário.");
+            return;
+          }
+
+          const qProximo = query(
+            collection(db, "agendamentos"),
+            where("data", "==", data),
+            where("hora", "==", proximoHorario)
+          );
+          const snapshotProximo = await getDocs(qProximo);
+          if (!snapshotProximo.empty) {
+            alert("O próximo horário está ocupado, escolha outro horário para manicure + pedicure.");
+            return;
+          }
+        }
+
         await addDoc(collection(db, "agendamentos"), {
           nome,
           data,
@@ -253,36 +290,34 @@
           criadoEm: Timestamp.now()
         });
 
-        document.getElementById("mensagem-sucesso").classList.remove("oculto");
         form.reset();
+        selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
         selectHora.disabled = true;
-        carregarHorarios(data);
+
+        document.getElementById("mensagem-sucesso").classList.remove("oculto");
+
       } catch (error) {
         console.error("Erro ao salvar agendamento: ", error);
-        alert("Erro ao salvar agendamento. Tente novamente mais tarde.");
+        alert("Erro ao salvar o agendamento. Tente novamente.");
       }
     });
 
-    inputData.addEventListener("change", (e) => {
-      selectHora.disabled = false;
-      carregarHorarios(e.target.value);
-    });
-
-    window.onload = () => {
-      inputData.value = "";
-      selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
-      selectHora.disabled = true;
-    };
-
-    document.getElementById("btn-acessar").addEventListener("click", function (event) {
-      event.preventDefault();
-      const senha = prompt("Digite a senha de acesso:");
-      if (senha === "1425") {
-        window.location.href = "agendamentos.html";
+    inputData.addEventListener("change", () => {
+      if (inputData.value) {
+        selectHora.disabled = false;
+        carregarHorarios(inputData.value);
       } else {
-        alert("❌ Senha incorreta. Acesso negado.");
+        selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
+        selectHora.disabled = true;
       }
     });
+
+    selectServico.addEventListener("change", () => {
+      if (inputData.value) {
+        carregarHorarios(inputData.value);
+      }
+    });
+
   </script>
 </body>
 </html>
