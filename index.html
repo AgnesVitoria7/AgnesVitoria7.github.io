@@ -2,138 +2,164 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agendamento | Espaço Bela Flor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agendamento de Manicure</title>
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      background-color: #fdf6f0;
+      font-family: 'Arial', sans-serif;
+      background-image: url('/Imagens/rosinha.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      color: #444;
       margin: 0;
-      padding: 0;
+      padding: 2rem;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background-color: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      padding: 30px;
-    }
-
-    h1 {
+    main {
+      max-width: 480px;
+      width: 100%;
+      padding: 2.5rem 2rem 3rem;
+      background: #ffffffdd;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
       text-align: center;
-      color: #b35f3d;
     }
-
+    main h1 {
+      margin: 0 0 0.25rem;
+      font-weight: 700;
+      font-size: 2.25rem;
+      color: #d15b91;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      letter-spacing: 1.2px;
+    }
+    main p {
+      margin: 0 0 2rem;
+      font-size: 1.1rem;
+      color: #7a4a68;
+      font-style: italic;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      text-align: left;
+    }
     label {
-      display: block;
-      margin-top: 15px;
-      color: #333;
-      font-weight: bold;
+      font-weight: 600;
+      color: #6e4668;
+      margin-bottom: 0.25rem;
+      display: inline-block;
     }
-
-    input, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-
-    button {
-      width: 100%;
-      background-color: #b35f3d;
-      color: #fff;
-      padding: 12px;
-      margin-top: 20px;
-      border: none;
+    input, select, button {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1.8px solid #d8a1c4;
       border-radius: 8px;
+      width: 100%;
+      transition: border-color 0.3s;
+      outline-offset: 2px;
+    }
+    input:focus, select:focus {
+      border-color: #d15b91;
+      box-shadow: 0 0 5px rgba(209, 91, 145, 0.5);
+    }
+    button {
+      background-color: #d15b91;
+      color: white;
+      border: none;
       cursor: pointer;
-      font-size: 16px;
+      font-weight: 700;
+      border-radius: 10px;
+      transition: background-color 0.3s ease;
+      margin-top: 1rem;
     }
-
     button:hover {
-      background-color: #a25235;
+      background-color: #b94778;
     }
-
+    #mensagem-sucesso {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      border-radius: 8px;
+      font-weight: 600;
+      text-align: center;
+    }
     .oculto {
       display: none;
     }
-
-    #mensagem-sucesso {
-      margin-top: 20px;
-      text-align: center;
-      color: green;
-      font-weight: bold;
-    }
-
-    #btn-acessar {
+    .link-acessar {
       display: block;
+      margin-top: 1.8rem;
       text-align: center;
-      margin-top: 25px;
-      color: #b35f3d;
-      text-decoration: none;
-    }
-
-    #btn-acessar:hover {
+      color: #d15b91;
       text-decoration: underline;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
     }
-
-    option[disabled] {
-      background-color: #eee;
-      color: #888;
+    .link-acessar:hover {
+      color: #b94778;
     }
   </style>
 </head>
 <body>
-  <main class="container">
-    <h1>Agendamento</h1>
+
+  <main>
+    <h1>Espaço Bela Flor</h1>
+    <p>Agende seu horário</p>
+
     <form id="form-agendamento">
-      <label for="nome">Nome:</label>
-      <input type="text" id="nome" required />
+      <div>
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" required />
+      </div>
 
-      <label for="data">Data:</label>
-      <input type="date" id="data" required />
+      <div>
+        <label for="data">Data:</label>
+        <input type="date" id="data" name="data" required />
+      </div>
 
-      <label for="hora">Horário:</label>
-      <select id="hora" required>
-        <option value="">Selecione uma data primeiro</option>
-      </select>
+      <!-- CAMPO SERVIÇO ANTES DO HORÁRIO -->
+      <div>
+        <label for="servico">Serviço:</label>
+        <select id="servico" name="servico" required>
+          <option value="">Selecione</option>
+          <option value="manicure">Manicure</option>
+          <option value="pedicure">Pedicure</option>
+          <option value="manicure-pedicure">Manicure + Pedicure</option>
+        </select>
+      </div>
 
-      <label for="servico">Serviço:</label>
-      <select id="servico" required>
-        <option value="">Selecione</option>
-        <option value="manicure">Manicure</option>
-        <option value="pedicure">Pedicure</option>
-        <option value="manicure-pedicure">Manicure + Pedicure (2h)</option>
-        <option value="designer">Designer de Sobrancelha</option>
-        <option value="henna">Sobrancelha com Henna</option>
-      </select>
+      <div>
+        <label for="hora">Hora:</label>
+        <select id="hora" name="hora" required disabled>
+          <option value="">Selecione uma data primeiro</option>
+        </select>
+      </div>
 
-      <label for="contato">Contato (WhatsApp):</label>
-      <input type="tel" id="contato" required placeholder="(99) 99999-9999" />
+      <div>
+        <label for="contato">WhatsApp ou Telefone:</label>
+        <input type="tel" id="contato" name="contato" required />
+      </div>
 
       <button type="submit">Agendar</button>
+      <a href="agendamentos.html" id="btn-acessar" class="link-acessar">Acessar</a>
     </form>
 
-    <p id="mensagem-sucesso" class="oculto">✅ Agendamento realizado com sucesso!</p>
-
-    <a href="#" id="btn-acessar">Acessar agendamentos (admin)</a>
+    <div id="mensagem-sucesso" class="oculto">✅ Agendamento realizado com sucesso!</div>
   </main>
 
+  <!-- Firebase SDKs (modular) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs,
-      addDoc,
-      Timestamp
-    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAAmyAjY--9e23VUdpqGoLyCx_N1hTYyq8",
@@ -174,27 +200,33 @@
         }
       }
 
-      const servicoSelecionado = document.getElementById("servico").value;
-
       horariosFixos.forEach((hora, i) => {
         const option = document.createElement("option");
         option.value = hora;
         option.textContent = hora;
 
-        const proximaHora = horariosFixos[i + 1];
+        const servicoSelecionado = document.getElementById("servico").value;
 
-        const ocupado = agendamentos.some(a => a.hora === hora);
-        const proximoOcupado = agendamentos.some(a => a.hora === proximaHora);
+        const servicoSelecionado = document.getElementById("servico").value;
 
-        const indisponivel =
-          ocupado ||
-          (servicoSelecionado === "manicure-pedicure" && (proximoOcupado || !proximaHora));
+let ocupado = agendamentos.some(a => a.hora === hora);
+let proximoHorario = horariosFixos[i + 1];
+let proximoOcupado = agendamentos.some(a => a.hora === proximoHorario);
 
-        if (indisponivel) {
-          option.disabled = true;
-          option.textContent += " (indisponível)";
-          option.style.color = "#aaa";
-        }
+// Se for "manicure-pedicure", precisa de 2 horários consecutivos livres
+if (servicoSelecionado === "manicure-pedicure") {
+  if (ocupado || proximoOcupado || !proximoHorario) {
+    option.disabled = true;
+    option.textContent += " (indisponível)";
+    option.style.color = "#aaa";
+  }
+} else {
+  if (ocupado) {
+    option.disabled = true;
+    option.textContent += " (indisponível)";
+    option.style.color = "#aaa";
+  }
+}
 
         selectHora.appendChild(option);
       });
