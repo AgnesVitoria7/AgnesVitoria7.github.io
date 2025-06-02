@@ -48,13 +48,10 @@
       padding: 1rem;
       border-radius: 8px;
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-      position: relative;
     }
 
     .botoes {
       margin-top: 0.75rem;
-      display: flex;
-      gap: 0.5rem;
     }
 
     .botao {
@@ -103,8 +100,7 @@
       collection,
       getDocs,
       deleteDoc,
-      doc,
-      setDoc
+      doc
     } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -143,7 +139,6 @@
           return;
         }
 
-        // Agrupa por data
         const atendidosPorData = {};
         atendidos.forEach(ag => {
           if (!atendidosPorData[ag.data]) {
@@ -169,7 +164,6 @@
               <strong>Serviço:</strong> ${agendamento.servico}<br>
               <strong>Contato:</strong> ${agendamento.contato}
               <div class="botoes">
-                <button class="botao restaurar" data-id="${agendamento.id}">🔄 Restaurar</button>
                 <button class="botao excluir-atendido" data-id="${agendamento.id}">🗑️ Excluir</button>
               </div>
             `;
@@ -196,33 +190,6 @@
             console.error("Erro ao excluir agendamento atendido:", error);
             alert("Erro ao excluir agendamento atendido.");
           }
-        }
-      }
-
-      if (e.target.classList.contains("restaurar")) {
-        const id = e.target.getAttribute("data-id");
-        try {
-          const docRef = doc(db, "agendamentosAtendidos", id);
-          const docSnap = await getDoc(docRef);
-
-          if (!docSnap.exists()) {
-            alert("Agendamento não encontrado.");
-            return;
-          }
-
-          const agendamentoData = docSnap.data();
-
-          // Adiciona na coleção agendamentos
-          await setDoc(doc(db, "agendamentos", id), agendamentoData);
-
-          // Remove da coleção agendamentosAtendidos
-          await deleteDoc(docRef);
-
-          alert("Agendamento restaurado com sucesso!");
-          carregarAgendamentosAtendidos();
-        } catch (error) {
-          console.error("Erro ao restaurar agendamento:", error);
-          alert("Erro ao restaurar agendamento.");
         }
       }
     });
