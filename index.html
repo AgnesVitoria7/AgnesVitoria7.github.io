@@ -185,50 +185,54 @@
       return horarios;
     }
 
-    async function carregarHorarios(dataSelecionada = null) {
+    async function carregarHorarios(dataSelecionada) {
       const horariosFixos = gerarHorariosFixos();
       selectHora.innerHTML = "<option value=''>Selecione um horário</option>";
 
-      let agendamentos = [];
-      if (dataSelecionada) {
-        try {
-          const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
-          const querySnapshot = await getDocs(q);
-          agendamentos = querySnapshot.docs.map(doc => doc.data());
-        } catch (error) {
-          console.error("Erro ao buscar agendamentos: ", error);
-        }
+      if (!dataSelecionada) {
+        selectHora.disabled = true;
+        return;
       }
+      selectHora.disabled = false;
 
-      const servicoSelecionado = selectServico.value;
+      try {
+        // Busca agendamentos da data selecionada
+        const q = query(collection(db, "agendamentos"), where("data", "==", dataSelecionada));
+        const querySnapshot = await getDocs(q);
 
-      horariosFixos.forEach((hora, index) => {
-        const option = document.createElement("option");
-        option.value = hora;
-        option.textContent = hora;
+        // Extrai todos os horários já ocupados
+        const horariosOcupados = querySnapshot.docs.map(doc => doc.data().hora);
 
-        // Horários ocupados
-        const ocupado = agendamentos.some(a => a.hora === hora);
+        const servicoSelecionado = selectServico.value;
 
-        if (ocupado) {
-          option.disabled = true;
-          option.textContent += " (indisponível)";
-          option.style.color = "#aaa";
-        } else if (servicoSelecionado === "manicure-pedicure") {
-          // Se serviço for manicure-pedicure, bloqueia o horário anterior caso esteja ocupado
-          const horarioAnterior = horariosFixos[index - 1];
+        horariosFixos.forEach((hora, index) => {
+          const option = document.createElement("option");
+          option.value = hora;
+          option.textContent = hora;
 
-          const bloqueiaPorProximidade = agendamentos.some(a => a.hora === horarioAnterior);
-
-          if (bloqueiaPorProximidade) {
+          // Verifica se está ocupado
+          if (horariosOcupados.includes(hora)) {
             option.disabled = true;
-            option.textContent += " (indisponível - duração estendida)";
+            option.textContent += " (indisponível)";
             option.style.color = "#aaa";
           }
-        }
 
-        selectHora.appendChild(option);
-      });
+          // Se for manicure + pedicure, bloqueia próximo horário também
+          if (servicoSelecionado === "manicure-pedicure") {
+            const horarioAnterior = horariosFixos[index - 1];
+            if (horariosOcupados.includes(horarioAnterior)) {
+              option.disabled = true;
+              option.textContent += " (indisponível - duração estendida)";
+              option.style.color = "#aaa";
+            }
+          }
+
+          selectHora.appendChild(option);
+        });
+
+      } catch (error) {
+        console.error("Erro ao carregar horários:", error);
+      }
     }
 
     form.addEventListener("submit", async (e) => {
@@ -246,7 +250,7 @@
       }
 
       try {
-        // Verifica se o horário já está agendado
+        // Verifica novamente no envio se o horário está disponível
         const q = query(
           collection(db, "agendamentos"),
           where("data", "==", data),
@@ -259,28 +263,6 @@
           return;
         }
 
-        // Se serviço for manicure-pedicure, verifica se próximo horário está livre
-        if (servico === "manicure-pedicure") {
-          const horariosFixos = gerarHorariosFixos();
-          const indiceHoraAtual = horariosFixos.indexOf(hora);
-          const proximoHorario = horariosFixos[indiceHoraAtual + 1];
-          if (!proximoHorario) {
-            alert("Não há horário disponível para manicure + pedicure nesse horário.");
-            return;
-          }
-
-          const qProximo = query(
-            collection(db, "agendamentos"),
-            where("data", "==", data),
-            where("hora", "==", proximoHorario)
-          );
-          const snapshotProximo = await getDocs(qProximo);
-          if (!snapshotProximo.empty) {
-            alert("O próximo horário está ocupado, escolha outro horário para manicure + pedicure.");
-            return;
-          }
-        }
-
         await addDoc(collection(db, "agendamentos"), {
           nome,
           data,
@@ -290,26 +272,20 @@
           criadoEm: Timestamp.now()
         });
 
-        form.reset();
-        selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
-        selectHora.disabled = true;
-
         document.getElementById("mensagem-sucesso").classList.remove("oculto");
+        form.reset();
+        selectHora.disabled = true;
+        // Recarregar horários para atualizar a lista bloqueada
+        carregarHorarios("");
 
       } catch (error) {
-        console.error("Erro ao salvar agendamento: ", error);
-        alert("Erro ao salvar o agendamento. Tente novamente.");
+        console.error("Erro ao salvar agendamento:", error);
+        alert("Erro ao agendar, tente novamente mais tarde.");
       }
     });
 
     inputData.addEventListener("change", () => {
-      if (inputData.value) {
-        selectHora.disabled = false;
-        carregarHorarios(inputData.value);
-      } else {
-        selectHora.innerHTML = "<option value=''>Selecione uma data primeiro</option>";
-        selectHora.disabled = true;
-      }
+      carregarHorarios(inputData.value);
     });
 
     selectServico.addEventListener("change", () => {
