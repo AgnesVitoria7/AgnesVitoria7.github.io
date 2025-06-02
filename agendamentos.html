@@ -15,26 +15,20 @@
       text-align: center;
       color: #d15b91;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 2rem;
+    .card {
       background: #fff;
       border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 8px 20px rgba(209, 91, 145, 0.2);
+      box-shadow: 0 4px 12px rgba(209, 91, 145, 0.2);
+      margin-bottom: 1.5rem;
+      padding: 1.2rem 1.5rem;
+      transition: transform 0.2s;
     }
-    th, td {
-      padding: 0.8rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid #eee;
+    .card:hover {
+      transform: scale(1.01);
+      background-color: #fff7fa;
     }
-    th {
-      background-color: #fce4ec;
+    .card strong {
       color: #8e2c63;
-    }
-    tr:hover {
-      background-color: #f9e1ec;
     }
     .botoes {
       margin-top: 2rem;
@@ -55,24 +49,18 @@
     .botao-link:hover {
       background-color: #d15b91;
     }
+    #lista-agendamentos {
+      max-width: 700px;
+      margin: 2rem auto 0;
+    }
   </style>
 </head>
 <body>
   <h1>Agendamentos</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Data</th>
-        <th>Hora</th>
-        <th>Serviço</th>
-        <th>Contato</th>
-      </tr>
-    </thead>
-    <tbody id="tabela-agendamentos">
-      <tr><td colspan="5">Carregando...</td></tr>
-    </tbody>
-  </table>
+
+  <div id="lista-agendamentos">
+    <p>Carregando agendamentos...</p>
+  </div>
 
   <div class="botoes">
     <a href="index.html" class="botao-link">Voltar</a>
@@ -96,33 +84,45 @@
     const db = getFirestore(app);
 
     async function carregarAgendamentos() {
-      const tabela = document.getElementById("tabela-agendamentos");
-      tabela.innerHTML = "";
+      const container = document.getElementById("lista-agendamentos");
+      container.innerHTML = "";
 
       try {
         const querySnapshot = await getDocs(collection(db, "agendamentos"));
+        const agendamentos = [];
 
-        if (querySnapshot.empty) {
-          tabela.innerHTML = "<tr><td colspan='5'>Nenhum agendamento encontrado.</td></tr>";
+        querySnapshot.forEach(doc => {
+          const dados = doc.data();
+          // Converte data para objeto Date para ordenação
+          const partes = dados.data.split("-");
+          const dataObj = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`); // de dd-mm-aaaa para aaaa-mm-dd
+          agendamentos.push({ ...dados, dataObj });
+        });
+
+        if (agendamentos.length === 0) {
+          container.innerHTML = "<p>Nenhum agendamento encontrado.</p>";
           return;
         }
 
-        querySnapshot.forEach(doc => {
-          const agendamento = doc.data();
-          const tr = document.createElement("tr");
+        // Ordena por data (mais recente primeiro)
+        agendamentos.sort((a, b) => b.dataObj - a.dataObj);
 
-          tr.innerHTML = `
-            <td>${agendamento.nome}</td>
-            <td>${agendamento.data}</td>
-            <td>${agendamento.hora}</td>
-            <td>${agendamento.servico}</td>
-            <td>${agendamento.contato}</td>
+        agendamentos.forEach(agendamento => {
+          const card = document.createElement("div");
+          card.className = "card";
+
+          card.innerHTML = `
+            <p><strong>Nome:</strong> ${agendamento.nome}</p>
+            <p><strong>Data:</strong> ${agendamento.data}</p>
+            <p><strong>Hora:</strong> ${agendamento.hora}</p>
+            <p><strong>Serviço:</strong> ${agendamento.servico}</p>
+            <p><strong>Contato:</strong> ${agendamento.contato}</p>
           `;
-          tabela.appendChild(tr);
+          container.appendChild(card);
         });
       } catch (error) {
         console.error("Erro ao carregar agendamentos:", error);
-        tabela.innerHTML = "<tr><td colspan='5'>Erro ao carregar dados.</td></tr>";
+        container.innerHTML = "<p>Erro ao carregar dados.</p>";
       }
     }
 
